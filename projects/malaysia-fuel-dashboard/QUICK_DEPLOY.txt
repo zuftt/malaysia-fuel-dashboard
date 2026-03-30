@@ -1,0 +1,113 @@
+🚀 QUICK DEPLOY CHECKLIST (5 Minutes)
+
+════════════════════════════════════════════════════════════════════════════
+
+STEP 1: Push to GitHub
+────────────────────────────────────────────────────────────────────────────
+[ ] Create new repo on GitHub: malaysia-fuel-dashboard
+[ ] Run these commands:
+
+    cd /home/zafri/.openclaw/workspace
+    git remote add origin https://github.com/YOUR_USERNAME/malaysia-fuel-dashboard.git
+    git branch -M main
+    git push -u origin main
+
+[ ] Verify on GitHub (should see all files)
+
+════════════════════════════════════════════════════════════════════════════
+
+STEP 2: Deploy Backend (Render)
+────────────────────────────────────────────────────────────────────────────
+[ ] Go to https://render.com
+[ ] Sign up with GitHub
+[ ] Click "New" → "Web Service"
+[ ] Connect repo and select it
+[ ] Fill in:
+    Name: malaysia-fuel-api
+    Build Command: pip install -r backend/requirements.txt
+    Start: cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    
+[ ] Add Environment Variables:
+    ENVIRONMENT = production
+    SECRET_KEY = (Render will generate)
+    CORS_ORIGINS = https://your-vercel-url.vercel.app (add later)
+
+[ ] Click "Create Web Service"
+[ ] Wait for deployment (~5 min)
+[ ] Copy your API URL: https://malaysia-fuel-api.onrender.com
+
+[ ] Create PostgreSQL database:
+    - Click "New" → "PostgreSQL"
+    - Name: fuel-db
+    - Copy connection string
+    - Add to Web Service: DATABASE_URL=(paste here)
+
+════════════════════════════════════════════════════════════════════════════
+
+STEP 3: Deploy Frontend (Vercel)
+────────────────────────────────────────────────────────────────────────────
+[ ] Go to https://vercel.com
+[ ] Sign up with GitHub
+[ ] Click "Import Project"
+[ ] Select your repo
+[ ] Configure:
+    Root Directory: frontend
+    Framework: Next.js
+    
+[ ] Add Environment Variable:
+    NEXT_PUBLIC_API_URL = https://malaysia-fuel-api.onrender.com (from Render)
+
+[ ] Click "Deploy"
+[ ] Wait for deployment (~3 min)
+[ ] Get your URL: https://yourusername-fuel-dashboard.vercel.app
+
+════════════════════════════════════════════════════════════════════════════
+
+STEP 4: Test Everything
+────────────────────────────────────────────────────────────────────────────
+[ ] Test API: https://malaysia-fuel-api.onrender.com/health
+    Should return: {"status":"healthy",...}
+
+[ ] Test API Docs: https://malaysia-fuel-api.onrender.com/docs
+    Should show Swagger UI with all endpoints
+
+[ ] Test Dashboard: https://yourusername-fuel-dashboard.vercel.app
+    Should show fuel price cards and charts
+
+[ ] If dashboard shows "Error", check:
+    - NEXT_PUBLIC_API_URL in Vercel env vars
+    - API is actually running on Render
+    - CORS_ORIGINS includes Vercel URL
+
+════════════════════════════════════════════════════════════════════════════
+
+DONE! 🎉
+
+Your live dashboard:
+  → https://yourusername-fuel-dashboard.vercel.app
+  
+Your live API:
+  → https://malaysia-fuel-api.onrender.com
+  → Docs: https://malaysia-fuel-api.onrender.com/docs
+
+Cost: $0/month (free tier)
+
+════════════════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING
+────────────────────────────────────────────────────────────────────────────
+
+Dashboard shows "Failed to fetch data"?
+  → Check API URL in Vercel env vars matches Render URL
+  → Check Render logs for errors
+
+API not responding?
+  → Check Render logs
+  → Make sure DATABASE_URL is set
+  → Make sure Python dependencies installed
+
+Still stuck?
+  → Check DEPLOY.md for detailed instructions
+  → View logs: Render/Vercel dashboards → service → logs
+
+════════════════════════════════════════════════════════════════════════════
