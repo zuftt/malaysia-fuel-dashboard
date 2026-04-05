@@ -4,7 +4,7 @@ Database Configuration & Session Management
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.pool import QueuePool, StaticPool
 import os
 from dotenv import load_dotenv
 
@@ -16,18 +16,25 @@ DATABASE_URL = os.getenv(
     "sqlite:///./fuel_dashboard.db"
 )
 
-# For PostgreSQL (production):
-# DATABASE_URL = "postgresql://user:password@localhost/fuel_dashboard"
+# Engine configuration - use appropriate pool for database type
+_is_sqlite = DATABASE_URL.startswith("sqlite")
 
-# Engine configuration
-engine = create_engine(
-    DATABASE_URL,
-    poolclass=QueuePool,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,  # Verify connections before using
-    echo=os.getenv("SQL_ECHO", "False") == "True"
-)
+if _is_sqlite:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=os.getenv("SQL_ECHO", "False") == "True"
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        poolclass=QueuePool,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        echo=os.getenv("SQL_ECHO", "False") == "True"
+    )
 
 # Session factory
 SessionLocal = sessionmaker(

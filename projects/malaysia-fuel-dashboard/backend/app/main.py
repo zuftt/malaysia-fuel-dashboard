@@ -12,6 +12,7 @@ import logging
 
 from app.database import init_db, SessionLocal
 from app.api import prices, news, trends, admin, auth
+from app.data_fetcher import sync_fuel_prices
 
 # Logging setup
 logging.basicConfig(
@@ -42,13 +43,23 @@ app.add_middleware(
 # Event handlers
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database on startup"""
+    """Initialize database and sync fuel data on startup"""
     logger.info("🚀 Starting Malaysia Fuel Dashboard API...")
     try:
         init_db()
         logger.info("✓ Database initialized successfully")
     except Exception as e:
         logger.error(f"✗ Database initialization failed: {e}")
+        return
+
+    # Sync fuel prices from data.gov.my on startup
+    try:
+        db = SessionLocal()
+        result = sync_fuel_prices(db)
+        logger.info(f"✓ Fuel data sync: {result['created']} new, {result['skipped']} skipped")
+        db.close()
+    except Exception as e:
+        logger.warning(f"⚠ Fuel data sync failed (non-fatal): {e}")
 
 
 @app.on_event("shutdown")

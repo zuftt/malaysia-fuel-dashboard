@@ -2,12 +2,15 @@
 SQLAlchemy Models for Malaysia Fuel & Policy Intelligence Dashboard
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, DECIMAL, JSON, ARRAY, Boolean, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Column, Integer, String, Text, DateTime, DECIMAL, JSON, Boolean, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
 Base = declarative_base()
+
+# Use JSON instead of ARRAY for SQLite compatibility.
+# PostgreSQL ARRAY(String) is not supported by SQLite.
 
 
 class FuelPrice(Base):
@@ -50,7 +53,7 @@ class GovernmentAnnouncement(Base):
     source_url = Column(String(500), nullable=True)
     announcement_type = Column(String(50), nullable=False)
     extracted_prices = Column(JSON, nullable=True)
-    keywords = Column(ARRAY(String), nullable=True)
+    keywords = Column(JSON, nullable=True)
     sentiment = Column(String(20), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -183,7 +186,7 @@ class AlertConfig(Base):
     id = Column(Integer, primary_key=True, index=True)
     fuel_type = Column(String(50), nullable=False)
     alert_threshold_pct = Column(DECIMAL(5, 2), nullable=False)
-    notify_channels = Column(ARRAY(String), default=['dashboard'])
+    notify_channels = Column(JSON, default=['dashboard'])
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

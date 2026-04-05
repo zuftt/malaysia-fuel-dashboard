@@ -8,26 +8,23 @@ from sqlalchemy import desc
 from datetime import datetime
 
 from app.database import get_db
-from app.models import FuelPrice, GovernmentAnnouncement, AlertConfig, ScraperStatus
+from app.models import FuelPrice, GovernmentAnnouncement, AlertConfig, ScraperStatus, User
 from app.schemas import (
-    PriceValidateRequest, ValidationResponse, 
+    PriceValidateRequest, ValidationResponse,
     AlertConfigCreate, AlertConfig as AlertConfigSchema,
     ScraperStatusResponse
 )
+from app.api.auth import require_admin
+from app.data_fetcher import sync_fuel_prices
 
 router = APIRouter()
-
-
-# TODO: Add authentication dependency
-# from app.auth import verify_admin_token
-# async def verify_admin(token: str = Depends(oauth2_scheme)):
 
 
 @router.post("/prices/validate", response_model=ValidationResponse)
 async def validate_price(
     request: PriceValidateRequest,
-    db: Session = Depends(get_db)
-    # admin_user = Depends(verify_admin)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin)
 ):
     """
     Manually validate and correct fuel prices
@@ -62,8 +59,8 @@ async def validate_price(
 @router.post("/announcements/manual")
 async def add_manual_announcement(
     announcement: dict,
-    db: Session = Depends(get_db)
-    # admin_user = Depends(verify_admin)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin)
 ):
     """
     Manually add announcement (for missed scrapes)
@@ -121,8 +118,8 @@ async def get_scraper_status(db: Session = Depends(get_db)):
 @router.post("/alerts/config", response_model=AlertConfigSchema)
 async def create_alert_config(
     config: AlertConfigCreate,
-    db: Session = Depends(get_db)
-    # admin_user = Depends(verify_admin)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin)
 ):
     """
     Configure alert thresholds for fuel types
@@ -203,22 +200,44 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
 
 
 @router.post("/sync/global-benchmarks")
-async def sync_global_benchmarks(db: Session = Depends(get_db)):
+async def sync_global_benchmarks(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin)
+):
     """
     Trigger sync of global benchmarks (MOPS Singapore, WTI, Brent)
+    Note: Currently a placeholder - integrate with a real data provider for production.
     """
-    # TODO: Implement actual API call to data provider
     return {
-        "success": True,
-        "message": "Global benchmark sync triggered",
-        "job_id": "job_12345"
+        "success": False,
+        "message": "Global benchmark sync not yet configured. Set up a data provider (e.g. commodity API) to enable this feature.",
     }
+
+
+@router.post("/sync/fuel-prices")
+async def sync_fuel_prices_endpoint(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin)
+):
+    """
+    Trigger sync of fuel prices from data.gov.my
+    """
+    try:
+        result = sync_fuel_prices(db)
+        return {
+            "success": True,
+            "message": f"Synced {result['created']} new records from data.gov.my",
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
 
 
 @router.post("/cleanup/old-data")
 async def cleanup_old_data(
     days: int = 730,  # 2 years
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin)
 ):
     """
     Archive or delete data older than specified days

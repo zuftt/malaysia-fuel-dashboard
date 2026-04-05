@@ -63,10 +63,7 @@ async def get_price_alerts(
     cutoff_date = datetime.utcnow() - timedelta(days=days)
     
     alerts = db.query(PriceAlert).filter(
-        and_(
-            PriceAlert.triggered_at >= cutoff_date,
-            # Convert Decimal to float for comparison
-        )
+        PriceAlert.triggered_at >= cutoff_date
     ).order_by(desc(PriceAlert.triggered_at)).all()
     
     # Filter by min_change
