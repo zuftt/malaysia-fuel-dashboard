@@ -1,0 +1,9 @@
+# Lambda container image — weekly price scraper
+FROM public.ecr.aws/lambda/python:3.13
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/app ${LAMBDA_TASK_ROOT}/app
+
+CMD ["app.lambdas.scraper.handler"]

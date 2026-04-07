@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AWS Architecture — Malaysia Fuel Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f8f9fb;
+    color: #1a1d21;
+    padding: 48px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #0f1419;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 48px;
+  }
+  .subtitle span {
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin-left: 8px;
+  }
+
+  .diagram {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ── Layers ── */
+  .layer {
+    position: relative;
+    margin-bottom: 24px;
+  }
+  .layer-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #9ca3af;
+    margin-bottom: 12px;
+  }
+  .layer-content {
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  /* ── Boxes ── */
+  .box {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    transition: box-shadow 0.2s;
+    flex: 1;
+    max-width: 320px;
+  }
+  .box:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+  }
+  .box-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  .box-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .box-service {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 10px;
+  }
+  .box-detail {
+    font-size: 12px;
+    color: #9ca3af;
+    line-height: 1.6;
+  }
+  .box-cost {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* ── Color themes ── */
+  .theme-orange .box-icon { background: #fff7ed; color: #ea580c; }
+  .theme-orange .box-cost { background: #fff7ed; color: #ea580c; }
+  .theme-blue .box-icon { background: #eff6ff; color: #2563eb; }
+  .theme-blue .box-cost { background: #eff6ff; color: #2563eb; }
+  .theme-green .box-icon { background: #f0fdf4; color: #16a34a; }
+  .theme-green .box-cost { background: #f0fdf4; color: #16a34a; }
+  .theme-purple .box-icon { background: #faf5ff; color: #9333ea; }
+  .theme-purple .box-cost { background: #faf5ff; color: #9333ea; }
+  .theme-slate .box-icon { background: #f1f5f9; color: #475569; }
+  .theme-slate .box-cost { background: #f1f5f9; color: #475569; }
+  .theme-cyan .box-icon { background: #ecfeff; color: #0891b2; }
+  .theme-cyan .box-cost { background: #ecfeff; color: #0891b2; }
+  .theme-rose .box-icon { background: #fff1f2; color: #e11d48; }
+  .theme-rose .box-cost { background: #fff1f2; color: #e11d48; }
+
+  /* ── Arrows ── */
+  .arrow-down {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .arrow-down svg {
+    width: 24px;
+    height: 32px;
+  }
+  .arrow-split {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+    position: relative;
+  }
+
+  /* ── Connector lines ── */
+  .connectors {
+    position: relative;
+    height: 56px;
+    margin: 0 auto;
+    max-width: 700px;
+  }
+  .connectors svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Wide box ── */
+  .box-wide {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* ── Side boxes ── */
+  .side-panel {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 32px;
+  }
+  .side-box {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 200px;
+  }
+  .side-box-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .side-box-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .side-box-sub {
+    font-size: 11px;
+    color: #9ca3af;
+  }
+
+  /* ── Footer ── */
+  .total-bar {
+    margin-top: 48px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+    color: #fff;
+    border-radius: 16px;
+    padding: 28px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .total-bar h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .total-bar .amount {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+  }
+  .total-bar .per-month {
+    font-size: 14px;
+    color: #94a3b8;
+  }
+  .total-breakdown {
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .total-breakdown div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Flow labels ── */
+  .flow-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="diagram">
+  <h1>AWS Architecture</h1>
+  <p class="subtitle">Malaysia Fuel Price Dashboard <span>~$28/mo</span></p>
+
+  <!-- LAYER: Users -->
+  <div class="layer">
+    <div class="layer-label">Internet</div>
+    <div class="layer-content" style="justify-content: center;">
+      <div class="box box-wide theme-slate">
+        <div class="box-icon">👤</div>
+        <div class="box-title">Users / Browsers</div>
+        <div class="box-service">HTTPS Requests</div>
+        <div class="box-detail">All traffic enters through a single CloudFront domain.<br/>No CORS needed — frontend and API share the same origin.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down">
+    <svg viewBox="0 0 24 32"><path d="M12 0 L12 24 M6 18 L12 26 L18 18" stroke="#d1d5db" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- LAYER: CDN -->
+  <div class="layer">
+    <div class="layer-label">Edge / CDN</div>
+    <div class="layer-content" style="justify-content: center;">
+      <div class="box box-wide theme-orange">
+        <div class="box-icon">🌐</div>
+        <div class="box-cost">$1.50/mo</div>
+        <div class="box-title">Amazon CloudFront</div>
+        <div class="box-service">CDN + HTTPS + Route Splitting</div>
+        <div class="box-detail">
+          <strong style="color:#374151;">/*</strong> → S3 (static frontend)<br/>
+          <strong style="color:#374151;">/api/*</strong> → API Gateway (backend)<br/>
+          <strong style="color:#374151;">/health</strong> → API Gateway (health check)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Split connectors -->
+  <div class="connectors">
+    <svg viewBox="0 0 700 56">
+      <!-- Center line down -->
+      <path d="M350 0 L350 12" stroke="#d1d5db" stroke-width="2" fill="none"/>
+      <!-- Horizontal split -->
+      <path d="M175 12 L525 12" stroke="#d1d5db" stroke-width="2" fill="none"/>
+      <!-- Left arrow down -->
+      <path d="M175 12 L175 48 M169 42 L175 50 L181 42" stroke="#d1d5db" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Right arrow down -->
+      <path d="M525 12 L525 48 M519 42 L525 50 L531 42" stroke="#d1d5db" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Labels -->
+      <text x="175" y="36" text-anchor="middle" font-size="9" fill="#9ca3af" font-weight="600" font-family="Inter">/* static</text>
+      <text x="525" y="36" text-anchor="middle" font-size="9" fill="#9ca3af" font-weight="600" font-family="Inter">/api/* proxy</text>
+    </svg>
+  </div>
+
+  <!-- LAYER: Origins -->
+  <div class="layer">
+    <div class="layer-label">Origins</div>
+    <div class="layer-content">
+      <div class="box theme-blue">
+        <div class="box-icon">📦</div>
+        <div class="box-cost">$0.50/mo</div>
+        <div class="box-title">Amazon S3</div>
+        <div class="box-service">Static Website Hosting</div>
+        <div class="box-detail">Next.js static export (HTML, JS, CSS).<br/>Private bucket — only CloudFront can read via OAC.</div>
+      </div>
+      <div class="box theme-purple">
+        <div class="box-icon">🔀</div>
+        <div class="box-cost">$1.00/mo</div>
+        <div class="box-title">API Gateway HTTP</div>
+        <div class="box-service">Managed API Proxy (replaces ALB)</div>
+        <div class="box-detail">Routes requests to ECS via VPC Link.<br/>Auto-deploy on $default stage. Saves ~$17/mo over ALB.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow down (right side only) -->
+  <div class="connectors">
+    <svg viewBox="0 0 700 40">
+      <path d="M525 0 L525 32 M519 26 L525 34 L531 26" stroke="#d1d5db" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="540" y="20" font-size="9" fill="#9ca3af" font-weight="600" font-family="Inter">VPC Link</text>
+    </svg>
+  </div>
+
+  <!-- LAYER: Compute -->
+  <div class="layer">
+    <div class="layer-label">Compute — VPC (Public Subnets, No NAT)</div>
+    <div class="layer-content" style="justify-content: center;">
+      <div class="box theme-green" style="max-width: 500px;">
+        <div class="box-icon">🐳</div>
+        <div class="box-cost">$8.50/mo</div>
+        <div class="box-title">ECS Fargate</div>
+        <div class="box-service">0.25 vCPU · 512MB · Public Subnet · Auto-assign Public IP</div>
+        <div class="box-detail">
+          FastAPI container pulled from ECR.<br/>
+          Secrets injected from SSM Parameter Store.<br/>
+          Health check on <code>/health</code> endpoint.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down">
+    <svg viewBox="0 0 24 32"><path d="M12 0 L12 24 M6 18 L12 26 L18 18" stroke="#d1d5db" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="flow-label">PostgreSQL (port 5432, SG restricted)</div>
+  <div style="height: 8px;"></div>
+
+  <!-- LAYER: Database -->
+  <div class="layer">
+    <div class="layer-label">Database</div>
+    <div class="layer-content" style="justify-content: center;">
+      <div class="box theme-cyan" style="max-width: 500px;">
+        <div class="box-icon">🗄️</div>
+        <div class="box-cost">$13.50/mo</div>
+        <div class="box-title">Amazon RDS PostgreSQL 16</div>
+        <div class="box-service">db.t3.micro · 20GB gp3 · Single-AZ · Encrypted</div>
+        <div class="box-detail">
+          Not publicly accessible — only ECS security group can connect.<br/>
+          7-day automated backups. Final snapshot on delete.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supporting Services -->
+  <div class="side-panel">
+    <div class="side-box">
+      <div class="side-box-icon" style="background: #fef3c7; color: #d97706;">🔐</div>
+      <div>
+        <div class="side-box-title">SSM Parameter Store</div>
+        <div class="side-box-sub">DB_URL, JWT_SECRET (free)</div>
+      </div>
+    </div>
+    <div class="side-box">
+      <div class="side-box-icon" style="background: #fce7f3; color: #db2777;">📊</div>
+      <div>
+        <div class="side-box-title">CloudWatch</div>
+        <div class="side-box-sub">Logs + Alarms ($2.50/mo)</div>
+      </div>
+    </div>
+    <div class="side-box">
+      <div class="side-box-icon" style="background: #e0e7ff; color: #4f46e5;">📦</div>
+      <div>
+        <div class="side-box-title">ECR</div>
+        <div class="side-box-sub">Docker images ($0.50/mo)</div>
+      </div>
+    </div>
+    <div class="side-box">
+      <div class="side-box-icon" style="background: #f0fdf4; color: #16a34a;">⚡</div>
+      <div>
+        <div class="side-box-title">GitHub Actions</div>
+        <div class="side-box-sub">CI/CD pipeline (free)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total -->
+  <div class="total-bar">
+    <div>
+      <h3>Estimated Monthly Cost</h3>
+      <div class="total-breakdown" style="margin-top: 8px;">
+        <div><span class="dot" style="background:#f97316;"></span> CDN $1.50</div>
+        <div><span class="dot" style="background:#3b82f6;"></span> S3 $0.50</div>
+        <div><span class="dot" style="background:#a855f7;"></span> API GW $1.00</div>
+        <div><span class="dot" style="background:#22c55e;"></span> ECS $8.50</div>
+        <div><span class="dot" style="background:#06b6d4;"></span> RDS $13.50</div>
+        <div><span class="dot" style="background:#ec4899;"></span> CW $2.50</div>
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div class="amount">~$28</div>
+      <div class="per-month">per month</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
