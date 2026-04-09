@@ -1,0 +1,69 @@
+"""
+Database Configuration & Session Management
+"""
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import QueuePool, StaticPool
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Database URL from environment or use SQLite for development
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "sqlite:///./fuel_dashboard.db"
+)
+
+# Engine configuration - use appropriate pool for database type
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+
+if _is_sqlite:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=os.getenv("SQL_ECHO", "False") == "True"
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        poolclass=QueuePool,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        echo=os.getenv("SQL_ECHO", "False") == "True"
+    )
+
+# Session factory
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+
+# Dependency for FastAPI
+def get_db() -> Session:
+    """
+    FastAPI dependency to provide database session
+    Usage: def endpoint(db: Session = Depends(get_db)):
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# Helper to create tables
+def init_db():
+    """Initialize database tables"""
+    from app.models import Base
+    Base.metadata.create_all(bind=engine)
+    print("✓ Database tables created successfully")
+
+
+if __name__ == "__main__":
+    init_db()
