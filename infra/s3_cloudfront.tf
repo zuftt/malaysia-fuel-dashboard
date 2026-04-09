@@ -44,16 +44,15 @@ resource "aws_s3_bucket_lifecycle_configuration" "frontend" {
   }
 }
 
-# Server-side encryption with KMS CMK
+# SSE-S3 (AES256) — CloudFront OAC can read objects without KMS Decrypt on the CMK.
+# (CMK + OAC requires extra kms:Decrypt on the key policy; public static assets use S3-managed keys.)
 resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.main.id
+      sse_algorithm = "AES256"
     }
-    bucket_key_enabled = true
   }
 }
 

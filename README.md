@@ -119,7 +119,7 @@ terraform apply
 
 CI/CD is wired up via [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
 
-1. On push to `master`, GitHub Actions builds the Lambda container image
+1. On push to `main`, GitHub Actions builds the Lambda container image
 2. Pushes to ECR
 3. Updates Lambda functions
 4. Builds Next.js and syncs to S3 + CloudFront invalidation

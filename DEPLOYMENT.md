@@ -1,370 +1,140 @@
-# Deployment Guide
+# Deployment (AWS)
 
-## Local Development Setup
+Production runs **serverless on AWS**: Terraform provisions VPC, RDS, Lambda (container images on ECR), API Gateway HTTP, S3, CloudFront, EventBridge, SNS, DynamoDB, and related IAM/KMS/CloudWatch resources. Details and cost notes live in [infra/README.md](infra/README.md).
 
-### Prerequisites
-- Python 3.9+
-- PostgreSQL (optional, SQLite for dev)
-- Node.js 16+ (for frontend)
-- Git
+## Prerequisites
 
-### Backend Setup
+- [AWS CLI](https://aws.amazon.com/cli/) configured (`aws configure` or SSO profile)
+- [Terraform](https://www.terraform.io/) ≥ 1.5
+- [Docker](https://docs.docker.com/get-docker/) with **Buildx** (included with Docker Desktop) for Lambda images pushed to ECR
+- [uv](https://docs.astral.sh/uv/) (optional — used by [awslabs/mcp](https://github.com/awslabs/mcp) servers in [.cursor/mcp.json](.cursor/mcp.json) for docs + IaC assistance in Cursor)
 
-```bash
-cd backend
+## One-time: provision infrastructure
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Initialize database
-python app/database.py
-
-# Run development server
-python -m uvicorn app.main:app --reload --port 8000
-```
-
-API will be available at: **http://localhost:8000**
-Docs: **http://localhost:8000/docs**
-
-### Frontend Setup (React/Next.js)
+From the repo root:
 
 ```bash
-cd frontend
+cd infra
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars: aws_region, github_org, github_repo, alert_email, etc.
 
-# Install dependencies
-npm install
+# Use hex for DB password — RDS rejects many base64 strings (/, @, ", space).
+export TF_VAR_db_password="$(openssl rand -hex 20)"
+export TF_VAR_jwt_secret="$(openssl rand -hex 32)"
 
-# Create .env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
-
-# Run dev server
-npm run dev
+terraform init
+terraform plan
+terraform apply
 ```
 
-Dashboard will be available at: **http://localhost:3000**
+Capture outputs for later steps and for GitHub Actions:
 
----
+```bash
+terraform output -raw github_actions_role_arn
+terraform output -raw s3_bucket
+terraform output -raw cloudfront_distribution_id
+terraform output cloudfront_url
+```
 
-## Docker Deployment
+Lambda function names follow `project_name` (default **`fuel-dashboard-api`** and **`fuel-dashboard-scraper`**).
 
-### Build Docker Images
+## First deploy: container images + static site
+
+After `terraform apply`, ECR repos exist but Lambdas need images, and S3 needs the Next.js static export.
+
+Run `terraform output` commands from `infra/`. Use the same `aws_region` as in `terraform.tfvars` (below: `ap-southeast-1`).
+
+```bash
+cd infra
+ECR_API=$(terraform output -raw ecr_api_url | tr -d '\n\r')
+ECR_SCRAPER=$(terraform output -raw ecr_scraper_url | tr -d '\n\r')
+REGION="ap-southeast-1"
+
+aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$(echo "$ECR_API" | cut -d/ -f1)"
+
+cd ..   # repository root — Dockerfiles are here
+
+# Lambda needs linux/amd64 and a plain Docker manifest (no OCI attestations).
+docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push \
+  -t "${ECR_API}:latest" -f Dockerfile .
+docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push \
+  -t "${ECR_SCRAPER}:latest" -f Dockerfile.scraper .
+
+# If Lambdas already exist, refresh code (optional after first terraform apply):
+aws lambda update-function-code --function-name fuel-dashboard-api --image-uri "${ECR_API}:latest" --region "$REGION"
+aws lambda update-function-code --function-name fuel-dashboard-scraper --image-uri "${ECR_SCRAPER}:latest" --region "$REGION"
+```
+
+Frontend (relative URLs to CloudFront `/api/*`; leave `NEXT_PUBLIC_API_URL` empty for production):
+
+```bash
+cd infra
+S3_BUCKET=$(terraform output -raw s3_bucket | tr -d '\n\r')
+CF_DIST=$(terraform output -raw cloudfront_distribution_id | tr -d '\n\r')
+REGION="ap-southeast-1"   # match terraform.tfvars
+cd ../frontend
+NEXT_PUBLIC_API_URL="" npm run build
+aws s3 sync out/ "s3://$S3_BUCKET/" --delete --region "$REGION"
+aws cloudfront create-invalidation --distribution-id "$CF_DIST" --paths "/*"
+```
+
+## CI/CD (GitHub Actions)
+
+Workflow: [.github/workflows/deploy.yml](.github/workflows/deploy.yml) (triggers on push to **`main`**).
+
+Repository secrets (typical):
+
+| Secret | Source |
+|--------|--------|
+| `AWS_ROLE_ARN` | `terraform output -raw github_actions_role_arn` |
+| `S3_BUCKET` | `terraform output -raw s3_bucket` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | `terraform output -raw cloudfront_distribution_id` |
+
+Uses OIDC — no long-lived AWS access keys in GitHub.
+
+The workflow builds Lambda images with **Docker Buildx** (`linux/amd64`, `--provenance=false`, `--sbom=false`) so **CreateFunction** accepts the ECR manifest. Plain `docker build` + `docker push` from Docker Desktop often produces a manifest Lambda rejects (“image manifest … is not supported”).
+
+## Production notes
+
+### RDS master password
+
+- **Save** `TF_VAR_db_password` somewhere safe the first time you run `terraform apply` (e.g. password manager). Terraform stores it in **state** as sensitive; it is **not** shown in `terraform output`.
+- Every `apply` with a **new** `TF_VAR_db_password` triggers an **in-place RDS password change**. Reuse the same value for routine applies if you do not intend to rotate the master password.
+- **Allowed characters** for RDS: printable ASCII **except** `/`, `@`, `"`, and space. Prefer `openssl rand -hex …` over `openssl rand -base64 …` for `TF_VAR_db_password`.
+
+### ECR image tag and shells
+
+- Always quote image refs: **`"${ECR_API}:latest"`**. In **zsh**, `$ECR_API:latest` can be parsed incorrectly and corrupt the repository/tag.
+- Trim Terraform output newlines: `$(terraform output -raw ecr_api_url | tr -d '\n\r')`.
+
+### PostgreSQL engine version
+
+- If `terraform apply` fails on RDS with “Cannot find version X for postgres”, pick a version that exists in your region, for example:
+
+  `aws rds describe-db-engine-versions --engine postgres --region ap-southeast-1 --query 'DBEngineVersions[].EngineVersion' --output text`
+
+- The repo pins a working **16.x** in [infra/rds.tf](infra/rds.tf); adjust if your region lags.
+
+### Database migrations
+
+- After the first deploy, run **schema migrations** against RDS (e.g. Alembic) from a host that can reach the private instance (bastion, VPN, or one-off ECS/CodeBuild task) if your app expects tables beyond what Terraform creates.
+
+## MCP helpers (Cursor)
+
+This repo includes [.cursor/mcp.json](.cursor/mcp.json) with [AWS Documentation](https://github.com/awslabs/mcp/tree/main/src/aws-documentation-mcp-server) and [AWS IaC](https://github.com/awslabs/mcp/tree/main/src/aws-iac-mcp-server) servers from [awslabs/mcp](https://github.com/awslabs/mcp). Install `uv`, reload MCP in Cursor, and approve the tools when prompted. For live AWS API calls from the assistant, you can also use the managed **AWS MCP Server** ([install](https://github.com/awslabs/mcp#getting-started-with-aws)).
+
+## Local development
+
+For day-to-day coding without AWS:
 
 ```bash
 # Backend
-docker build -t fuel-dashboard-api:latest ./backend
+cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload --port 8000
 
-# Frontend
-docker build -t fuel-dashboard-web:latest ./frontend
+# Frontend (separate terminal)
+cd frontend && npm install && echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local && npm run dev
 ```
 
-### Run with Docker Compose
+## Health check
 
-```bash
-docker-compose up -d
-```
-
-Services will be available at:
-- API: http://localhost:8000
-- Dashboard: http://localhost:3000
-- PostgreSQL: localhost:5432
-
----
-
-## Production Deployment
-
-### Environment Variables
-
-Create `.env` file:
-
-```bash
-# Database
-DATABASE_URL=postgresql://user:password@db-host:5432/fuel_dashboard
-SQL_ECHO=False
-
-# API Configuration
-SECRET_KEY=your-secret-key-here
-ACCESS_TOKEN_EXPIRE_MINUTES=480
-ENVIRONMENT=production
-PORT=8000
-
-# CORS
-CORS_ORIGINS=https://yourdomain.com
-
-# Scraper Configuration
-MOF_SCRAPER_ENABLED=true
-KPDN_SCRAPER_ENABLED=true
-SCRAPER_INTERVAL_HOURS=24
-
-# Notifications
-NOTIFY_EMAIL_ENABLED=true
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-
-# Redis (for caching & background tasks)
-REDIS_URL=redis://redis-host:6379/0
-
-# Monitoring
-SENTRY_DSN=your-sentry-dsn
-LOG_LEVEL=INFO
-```
-
-### Kubernetes Deployment
-
-```yaml
-# api-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: fuel-api
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: fuel-api
-  template:
-    metadata:
-      labels:
-        app: fuel-api
-    spec:
-      containers:
-      - name: api
-        image: fuel-dashboard-api:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: api-secrets
-              key: database-url
-        - name: SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: api-secrets
-              key: secret-key
-        resources:
-          requests:
-            cpu: 500m
-            memory: 512Mi
-          limits:
-            cpu: 1000m
-            memory: 1Gi
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-```
-
-Deploy:
-```bash
-kubectl apply -f api-deployment.yaml
-kubectl apply -f api-service.yaml
-```
-
-### Database Migration
-
-```bash
-# Using Alembic
-cd backend
-alembic upgrade head
-```
-
-### Monitoring & Logging
-
-**With Prometheus + Grafana:**
-```bash
-# Metrics endpoint: /metrics
-
-# Sample dashboard queries:
-- api_request_duration_seconds
-- fuel_price_update_lag_seconds
-- database_connection_pool_utilization
-```
-
-**With ELK Stack:**
-```bash
-# Logs are structured JSON for easy parsing
-# Index pattern: logs-fuel-dashboard-*
-```
-
----
-
-## Automated Scraping Setup
-
-### Background Tasks (Celery)
-
-```bash
-# Start Celery worker
-celery -A app.tasks worker --loglevel=info --schedule=/tmp/celerybeat-schedule
-
-# Monitor with Flower
-celery -A app.tasks flower
-```
-
-Available at: **http://localhost:5555**
-
-### Scheduled Tasks
-
-- **Every Wednesday 5 PM (Malaysia Time):** Scrape MOF APM announcement
-- **Daily at 8 AM:** Sync global benchmarks (MOPS, WTI, Brent)
-- **Every 6 hours:** Aggregate Bernama news feed
-- **Daily at 11 PM:** Generate analytics snapshot
-
----
-
-## Backup & Disaster Recovery
-
-### Daily Database Backup
-
-```bash
-# Automated backup script
-#!/bin/bash
-BACKUP_DIR="/backups/fuel-dashboard"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-
-pg_dump -h $DB_HOST -U $DB_USER $DB_NAME > $BACKUP_DIR/backup_$TIMESTAMP.sql
-gzip $BACKUP_DIR/backup_$TIMESTAMP.sql
-
-# Upload to S3
-aws s3 cp $BACKUP_DIR/backup_$TIMESTAMP.sql.gz s3://your-bucket/backups/
-```
-
-### Recovery Procedure
-
-```bash
-# From backup file
-gunzip backup_TIMESTAMP.sql.gz
-psql -h localhost -U user fuel_dashboard < backup_TIMESTAMP.sql
-```
-
----
-
-## Performance Tuning
-
-### Database Indexes
-
-All necessary indexes are defined in `models.py`. Verify:
-```sql
--- Check indexes
-SELECT * FROM pg_indexes WHERE tablename = 'fuel_prices';
-```
-
-### Caching Strategy
-
-- **Redis:** Cache latest prices (TTL: 1 hour)
-- **CDN:** Static assets (JavaScript, CSS)
-- **Browser Cache:** Set Cache-Control headers for API responses
-
-### API Rate Limiting
-
-Configured per endpoint:
-- Public: 100 req/hour per IP
-- Authenticated: 1000 req/hour per user
-- Admin: 500 req/hour per user
-
----
-
-## Continuous Deployment
-
-### GitHub Actions Workflow
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Test Backend
-        run: cd backend && pytest
-      - name: Test Frontend
-        run: cd frontend && npm test
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Deploy to Kubernetes
-        run: kubectl apply -f k8s/
-```
-
----
-
-## Health Checks & Monitoring
-
-### Health Endpoint
-```bash
-curl http://localhost:8000/health
-```
-
-Response:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2026-03-28T17:00:00Z",
-  "service": "Malaysia Fuel Intelligence Dashboard"
-}
-```
-
-### Key Metrics to Monitor
-
-1. **API Response Time:** p95 < 500ms
-2. **Database Query Time:** p95 < 200ms
-3. **Scraper Success Rate:** > 99%
-4. **Uptime:** > 99.5%
-5. **Cache Hit Ratio:** > 80%
-
----
-
-## Troubleshooting
-
-### API Won't Start
-```bash
-# Check logs
-docker logs fuel-dashboard-api
-
-# Verify database connection
-python -c "from app.database import SessionLocal; SessionLocal()"
-```
-
-### Slow Price Queries
-```bash
-# Check query performance
-EXPLAIN ANALYZE SELECT * FROM fuel_prices ORDER BY effective_date DESC LIMIT 10;
-```
-
-### Missing Price Updates
-```bash
-# Check scraper status
-curl http://localhost:8000/api/v1/admin/scraper-status
-
-# Check Celery tasks
-celery -A app.tasks inspect active
-```
-
----
-
-## Support & Escalation
-
-For production issues:
-1. Check `/health` endpoint
-2. Review logs: `docker logs fuel-dashboard-api`
-3. Check database connectivity
-4. Contact DevOps team
-
-Emergency contact: devops@example.com
+After deploy, open `terraform output cloudfront_url` and verify the API via the same host (e.g. `/api/...` and `/health` as routed by CloudFront).

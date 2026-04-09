@@ -73,6 +73,8 @@ terraform apply
 
 ### 3. Push Lambda Images
 
+Dockerfiles live at the **repository root**. From `infra/`, capture ECR URLs then build from `..`:
+
 ```bash
 ECR_API=$(terraform output -raw ecr_api_url)
 ECR_SCRAPER=$(terraform output -raw ecr_scraper_url)
@@ -80,17 +82,19 @@ ECR_SCRAPER=$(terraform output -raw ecr_scraper_url)
 aws ecr get-login-password --region ap-southeast-1 | \
   docker login --username AWS --password-stdin $ECR_API
 
+cd ..
+
 # API
 docker build -t fuel-api -f Dockerfile .
 docker tag fuel-api:latest $ECR_API:latest
 docker push $ECR_API:latest
-aws lambda update-function-code --function-name fuel-dashboard-api --image-uri $ECR_API:latest
+aws lambda update-function-code --function-name fuel-dashboard-api --image-uri $ECR_API:latest --region ap-southeast-1
 
 # Scraper
 docker build -t fuel-scraper -f Dockerfile.scraper .
 docker tag fuel-scraper:latest $ECR_SCRAPER:latest
 docker push $ECR_SCRAPER:latest
-aws lambda update-function-code --function-name fuel-dashboard-scraper --image-uri $ECR_SCRAPER:latest
+aws lambda update-function-code --function-name fuel-dashboard-scraper --image-uri $ECR_SCRAPER:latest --region ap-southeast-1
 ```
 
 ### 4. Deploy Frontend

@@ -35,25 +35,29 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
+      # Lambda requires linux/amd64 images without OCI attestations (manifest list / provenance breaks CreateFunction).
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build & push API Lambda image
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/${{ env.PROJECT_NAME }}-api:$IMAGE_TAG -f Dockerfile .
-          docker tag $ECR_REGISTRY/${{ env.PROJECT_NAME }}-api:$IMAGE_TAG $ECR_REGISTRY/${{ env.PROJECT_NAME }}-api:latest
-          docker push $ECR_REGISTRY/${{ env.PROJECT_NAME }}-api:$IMAGE_TAG
-          docker push $ECR_REGISTRY/${{ env.PROJECT_NAME }}-api:latest
+          docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push \
+            -t $ECR_REGISTRY/${{ env.PROJECT_NAME }}-api:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.PROJECT_NAME }}-api:latest \
+            -f Dockerfile .
 
       - name: Build & push Scraper Lambda image
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/${{ env.PROJECT_NAME }}-scraper:$IMAGE_TAG -f Dockerfile.scraper .
-          docker tag $ECR_REGISTRY/${{ env.PROJECT_NAME }}-scraper:$IMAGE_TAG $ECR_REGISTRY/${{ env.PROJECT_NAME }}-scraper:latest
-          docker push $ECR_REGISTRY/${{ env.PROJECT_NAME }}-scraper:$IMAGE_TAG
-          docker push $ECR_REGISTRY/${{ env.PROJECT_NAME }}-scraper:latest
+          docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push \
+            -t $ECR_REGISTRY/${{ env.PROJECT_NAME }}-scraper:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.PROJECT_NAME }}-scraper:latest \
+            -f Dockerfile.scraper .
 
       - name: Update Lambda functions
         env:
