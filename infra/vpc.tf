@@ -75,10 +75,37 @@ resource "aws_route_table_association" "public_b" {
   route_table_id = aws_route_table.public.id
 }
 
-# ── Private Route Table (no internet route — Lambda uses VPC endpoints) ──
+# ── Optional NAT (outbound internet for Lambdas — RSS/news HTTPS) ──
+resource "aws_eip" "nat" {
+  count  = var.enable_nat_gateway ? 1 : 0
+  domain = "vpc"
+
+  tags = { Name = "${var.project_name}-nat-eip" }
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+resource "aws_nat_gateway" "main" {
+  count         = var.enable_nat_gateway ? 1 : 0
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.public_a.id
+
+  tags = { Name = "${var.project_name}-nat" }
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+# ── Private Route Table — VPC endpoints by default; optional NAT route ──
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
   tags   = { Name = "${var.project_name}-private-rt" }
+}
+
+resource "aws_route" "private_nat_internet" {
+  count                  = var.enable_nat_gateway ? 1 : 0
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.main[0].id
 }
 
 resource "aws_route_table_association" "private_a" {

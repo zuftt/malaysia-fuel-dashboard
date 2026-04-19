@@ -14,6 +14,8 @@ A serverless full-stack app that tracks Malaysia’s weekly fuel prices from [da
 
 Interactive API docs: `/docs` when the backend is running locally or via CloudFront `/api/*`.
 
+**Berita Terkini** pulls live RSS headlines (fuel / subsidy related), stores them in Postgres/SQLite, and links out to sources. Tune feeds with env var `NEWS_RSS_URLS` (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
+
 ## Quick start (local)
 
 ```bash

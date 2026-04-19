@@ -28,6 +28,36 @@ interface TrendData {
   subsidy_gap: number;
 }
 
+interface NewsArticle {
+  id: number;
+  title: string;
+  source: string;
+  source_url: string | null;
+  announcement_date: string;
+  announcement_type: string;
+  content?: string | null;
+}
+
+function formatRelativeMs(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '';
+  const s = Math.floor((Date.now() - t) / 1000);
+  if (s < 45) return 'Baru sahaja';
+  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))} minit lalu`;
+  if (s < 86400) return `${Math.floor(s / 3600)} jam lalu`;
+  if (s < 604800) return `${Math.floor(s / 86400)} hari lalu`;
+  return new Date(iso).toLocaleDateString('ms-MY', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function shortSourceLabel(source: string): string {
+  if (source.startsWith('RSS · ')) return source.slice(6);
+  return source;
+}
+
 function Icon({ name, className = '', fill = false }: { name: string; className?: string; fill?: boolean }) {
   return (
     <span
@@ -47,17 +77,25 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly'>('weekly');
   const [chartFilter, setChartFilter] = useState<'all' | 'ron97' | 'diesel'>('all');
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const priceRes = await axios.get(`${API_URL}/api/v1/prices/latest`);
+        const [priceRes, trendRes, newsRes] = await Promise.all([
+          axios.get(`${API_URL}/api/v1/prices/latest`),
+          axios.get(`${API_URL}/api/v1/prices/history?days=84`),
+          axios.get(`${API_URL}/api/v1/news/latest?limit=9`).catch(() => ({ data: { data: [] as NewsArticle[] } })),
+        ]);
+
         setPrices(priceRes.data?.data ?? priceRes.data);
 
-        const trendRes = await axios.get(`${API_URL}/api/v1/prices/history?days=84`);
         const trendData = trendRes.data?.data ?? trendRes.data ?? [];
         setTrends(trendData);
+
+        const newsRows = newsRes.data?.data ?? [];
+        setArticles(Array.isArray(newsRows) ? newsRows : []);
 
         // Derive previous week's prices from history for change calculation
         if (trendData.length >= 2) {
@@ -438,7 +476,9 @@ export default function Home() {
                 </h2>
               </div>
               <a
-                href="#"
+                href="https://news.google.com/search?q=Malaysia+petrol+RON+subsidi+minyak&hl=en-MY&gl=MY&ceid=MY:en"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-primary text-sm font-bold font-headline hover:bg-primary/5 px-3 py-1.5 rounded-full transition-colors flex items-center gap-0.5"
               >
                 <span>Lagi Berita</span>
@@ -446,57 +486,80 @@ export default function Home() {
               </a>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {[
-                {
-                  tag: 'Berita Tempatan',
-                  tagStyle: 'text-slate-500 bg-slate-100',
-                  title: 'Update Harga Petrol: RON 97 Turun 5 Sen',
-                  source: 'Bernama',
-                  time: '2 jam yang lalu',
-                },
-                {
-                  tag: 'Pengumuman PMX',
-                  tagStyle: 'text-primary bg-primary/10',
-                  title: 'PMX: Penyasaran Subsidi Budi Madani Dilancarkan',
-                  source: 'Malaysia Now',
-                  time: '5 jam yang lalu',
-                },
-                {
-                  tag: 'Pasaran Global',
-                  tagStyle: 'text-slate-500 bg-slate-100',
-                  title: 'Global Oil Prices Stabilize as Supply Concerns Ease',
-                  source: 'Reuters',
-                  time: '1 hari yang lalu',
-                },
-              ].map((article, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col bg-white rounded-2xl overflow-hidden hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                >
-                  <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden mb-4 bg-slate-200">
-                    <div className="w-full h-full flex items-center justify-center text-slate-400">
-                      <Icon name="article" className="text-5xl" />
-                    </div>
-                  </div>
-                  <div className="flex-1 px-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${article.tagStyle}`}
-                      >
-                        {article.tag}
-                      </span>
-                    </div>
-                    <h3 className="font-headline font-bold text-lg text-on-surface leading-tight mb-2 group-hover:text-primary transition-colors">
-                      {article.title}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-on-surface-variant text-xs opacity-70">
-                      <span>{article.source}</span>
-                      <span className="w-0.5 h-0.5 rounded-full bg-current"></span>
-                      <span>{article.time}</span>
-                    </div>
-                  </div>
+              {articles.length === 0 ? (
+                <div className="col-span-full rounded-2xl border border-slate-200 bg-slate-50/80 px-6 py-10 text-center text-on-surface-variant">
+                  <p className="font-body text-sm mb-2">
+                    Tiada berita ditapis buat masa ini — atau API masih menyegerakkan RSS.
+                  </p>
+                  <p className="text-xs opacity-80">
+                    Pastikan backend boleh akses internet untuk Google News RSS (semak firewall).
+                  </p>
                 </div>
-              ))}
+              ) : (
+                articles.map((article, i) => {
+                  const hue = [210, 145, 175][i % 3];
+                  const tag =
+                    article.announcement_type === 'News Feed'
+                      ? 'Berita langsung'
+                      : article.announcement_type;
+                  const tagStyle =
+                    article.announcement_type === 'News Feed'
+                      ? 'text-primary bg-primary/10'
+                      : 'text-slate-500 bg-slate-100';
+                  const href = article.source_url || '#';
+                  const CardInner = (
+                    <>
+                      <div
+                        className="aspect-[16/9] w-full rounded-2xl overflow-hidden mb-4 flex items-center justify-center text-white/90 text-sm font-bold tracking-wide"
+                        style={{
+                          background: `linear-gradient(135deg, hsl(${hue}, 55%, 42%) 0%, hsl(${hue}, 35%, 28%) 100%)`,
+                        }}
+                      >
+                        <Icon name="article" className="text-5xl opacity-90" />
+                      </div>
+                      <div className="flex-1 px-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${tagStyle}`}
+                          >
+                            {tag}
+                          </span>
+                        </div>
+                        <h3 className="font-headline font-bold text-lg text-on-surface leading-tight mb-2 group-hover:text-primary transition-colors">
+                          {article.title}
+                        </h3>
+                        <p className="text-xs text-on-surface-variant line-clamp-2 mb-3 opacity-85">
+                          {(article.content || '').replace(/\s+/g, ' ').slice(0, 160)}
+                          {(article.content || '').length > 160 ? '…' : ''}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-on-surface-variant text-xs opacity-70">
+                          <span>{shortSourceLabel(article.source)}</span>
+                          <span className="w-0.5 h-0.5 rounded-full bg-current"></span>
+                          <span>{formatRelativeMs(article.announcement_date)}</span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                  return article.source_url ? (
+                    <a
+                      key={article.id}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col bg-white rounded-2xl overflow-hidden hover:bg-slate-50/80 transition-colors cursor-pointer group text-left no-underline"
+                    >
+                      {CardInner}
+                    </a>
+                  ) : (
+                    <div
+                      key={article.id}
+                      className="flex flex-col bg-white rounded-2xl overflow-hidden hover:bg-slate-50/80 transition-colors group"
+                    >
+                      {CardInner}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </section>
 

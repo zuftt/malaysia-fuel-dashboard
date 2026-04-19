@@ -2,7 +2,7 @@
 Pydantic Schemas for Request/Response Validation
 """
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from datetime import datetime, date
 from typing import Optional, List
 from decimal import Decimal
@@ -73,6 +73,11 @@ class Announcement(AnnouncementBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("keywords", mode="before")
+    @classmethod
+    def keywords_none_to_empty(cls, v):
+        return v if v is not None else []
 
 
 class AnnouncementResponse(BaseModel):

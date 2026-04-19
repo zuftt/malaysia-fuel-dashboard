@@ -15,6 +15,13 @@ High-level view of what runs in production (aligned with [infra/aws_architecture
 - **DynamoDB** holds subscription / visitor-counter style state used by the API.
 - **SNS** sends price-alert notifications when the scraper detects changes.
 
+## News (“Berita Terkini”)
+
+Headlines come from **RSS** (default: Google News searches for Malaysia fuel / subsidy / RON), filtered for relevance, then stored in **`government_announcements`** with `announcement_type = News Feed`. The API refreshes when data is **stale** (~4 hours) or on startup (`sync_news_feeds` in `news_fetcher.py`).
+
+- **Env:** `NEWS_SYNC_ON_STARTUP` (default `true`, set `false` in CI/tests). Optional `NEWS_RSS_URLS` — semicolon-separated `Label|https://...` entries to add or replace feeds.
+- **Egress:** Lambda/API needs **outbound HTTPS** to `news.google.com` (and any custom RSS hosts you set).
+
 ## CI/CD
 
 **GitHub Actions** (push to `main`) uses **OIDC** to assume an IAM role (no long-lived access keys). It builds **Docker** images for `linux/amd64`, pushes to **ECR**, updates both Lambdas, runs `npm run build` for the frontend, **syncs** `frontend/out/` to S3, and **invalidates** CloudFront.

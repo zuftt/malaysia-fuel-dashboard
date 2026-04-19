@@ -11,6 +11,7 @@ from typing import Optional, List
 from app.database import get_db
 from app.models import GovernmentAnnouncement, PolicyTag, PriceAlert
 from app.schemas import Announcement, AnnouncementResponse, PriceAlertResponse, PriceAlert as PriceAlertSchema
+from app.news_fetcher import maybe_refresh_news
 
 router = APIRouter()
 
@@ -23,13 +24,15 @@ async def get_latest_news(
     db: Session = Depends(get_db)
 ):
     """
-    Get latest government announcements
-    
+    Get latest government announcements (includes live RSS when stale).
+
     Parameters:
     - limit: Number of results (1-50)
     - source: Filter by source (MOF, KPDN, PMO, Bernama)
-    - announcement_type: Filter by type (Price Update, Policy Change, BUDI Rollout)
+    - announcement_type: Filter by type (Price Update, Policy Change, BUDI Rollout, News Feed)
     """
+    maybe_refresh_news(db)
+
     query = db.query(GovernmentAnnouncement).order_by(desc(GovernmentAnnouncement.announcement_date))
     
     if source:

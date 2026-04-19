@@ -51,10 +51,11 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      ENVIRONMENT    = var.environment
-      DATABASE_URL   = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.endpoint}/fuel_dashboard"
-      SECRET_KEY     = var.jwt_secret
-      DYNAMODB_TABLE = aws_dynamodb_table.alert_subscriptions.name
+      ENVIRONMENT          = var.environment
+      DATABASE_URL         = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.endpoint}/fuel_dashboard"
+      SECRET_KEY           = var.jwt_secret
+      DYNAMODB_TABLE       = aws_dynamodb_table.alert_subscriptions.name
+      NEWS_SYNC_ON_STARTUP = var.enable_nat_gateway ? "true" : "false"
     }
   }
 

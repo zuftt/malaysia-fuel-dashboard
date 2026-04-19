@@ -133,3 +133,11 @@ cd frontend && npm install && echo "NEXT_PUBLIC_API_URL=http://localhost:8000" >
 ## Health check
 
 After deploy, open `terraform output cloudfront_url` and verify the API via the same host (e.g. `/api/...` and `/health` as routed by CloudFront).
+
+## Live news (RSS) in AWS
+
+Berita Terkini syncs from public RSS (default: Google News) on API startup and when `/api/v1/news/latest` is called (if data is stale). **Private subnets in this stack have no internet by default** — outbound HTTPS to `news.google.com` requires either:
+
+1. **`enable_nat_gateway = true`** in `terraform.tfvars` (adds a NAT Gateway ~\$32/mo + egress), then `terraform apply`. The API Lambda sets `NEWS_SYNC_ON_STARTUP=true` automatically when NAT is enabled.
+
+2. Or leave NAT off and rely on **local/dev** sync only; production cards stay empty unless you later enable NAT or ingest news another way.

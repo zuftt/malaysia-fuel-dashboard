@@ -13,6 +13,7 @@ import logging
 from app.database import init_db, SessionLocal
 from app.api import prices, news, trends, admin, auth
 from app.data_fetcher import sync_fuel_prices
+from app.news_fetcher import sync_news_feeds
 
 # Logging setup
 logging.basicConfig(
@@ -62,10 +63,24 @@ async def startup_event():
     # Sync fuel prices from data.gov.my on startup
     db = SessionLocal()
     try:
-        result = sync_fuel_prices(db)
-        logger.info(f"✓ Fuel data sync: {result['created']} new, {result['skipped']} skipped")
-    except Exception as e:
-        logger.warning(f"⚠ Fuel data sync failed (non-fatal): {e}")
+        try:
+            result = sync_fuel_prices(db)
+            logger.info(f"✓ Fuel data sync: {result['created']} new, {result['skipped']} skipped")
+        except Exception as e:
+            logger.warning(f"⚠ Fuel data sync failed (non-fatal): {e}")
+
+        # Live RSS headlines (fuel / subsidy — skip in CI via NEWS_SYNC_ON_STARTUP=false)
+        if os.getenv("NEWS_SYNC_ON_STARTUP", "true").lower() in ("1", "true", "yes"):
+            try:
+                ns = sync_news_feeds(db)
+                logger.info(
+                    "✓ News RSS: %s new, %s updated, %s skipped",
+                    ns.get("inserted", 0),
+                    ns.get("updated", 0),
+                    ns.get("skipped", 0),
+                )
+            except Exception as e:
+                logger.warning(f"⚠ News RSS sync failed (non-fatal): {e}")
     finally:
         db.close()
 

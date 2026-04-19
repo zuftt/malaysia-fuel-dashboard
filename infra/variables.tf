@@ -52,3 +52,9 @@ variable "alert_email" {
   type        = string
   default     = ""
 }
+
+variable "enable_nat_gateway" {
+  description = "NAT Gateway in one public AZ so private Lambdas can reach the public internet (RSS/news). Adds ~$32/mo + data transfer."
+  type        = bool
+  default     = false
+}
