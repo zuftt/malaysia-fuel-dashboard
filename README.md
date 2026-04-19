@@ -33,6 +33,21 @@ See **[DEPLOYMENT.md](DEPLOYMENT.md)** — `terraform apply` in `infra/`, then D
 
 More detail: [infra/README.md](infra/README.md). Architecture notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Testing (local)
+
+```bash
+# Backend — needs network on first run (sync from data.gov.my)
+cd backend && pip install -r requirements.txt -r requirements-dev.txt && pytest -q
+
+# Frontend
+cd frontend && npm ci && npm run lint && NEXT_PUBLIC_API_URL="" npm run build
+
+# Terraform (from infra/)
+terraform init -backend=false && terraform validate && terraform fmt -check -recursive
+```
+
+Docker builds (`Dockerfile`, `Dockerfile.scraper`) require a running Docker daemon — same commands as [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Project layout
 
 ```
