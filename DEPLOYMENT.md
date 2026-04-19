@@ -7,7 +7,6 @@ Production runs **serverless on AWS**: Terraform provisions VPC, RDS, Lambda (co
 - [AWS CLI](https://aws.amazon.com/cli/) configured (`aws configure` or SSO profile)
 - [Terraform](https://www.terraform.io/) ≥ 1.5
 - [Docker](https://docs.docker.com/get-docker/) with **Buildx** (included with Docker Desktop) for Lambda images pushed to ECR
-- [uv](https://docs.astral.sh/uv/) (optional — used by [awslabs/mcp](https://github.com/awslabs/mcp) servers in [.cursor/mcp.json](.cursor/mcp.json) for docs + IaC assistance in Cursor)
 
 ## One-time: provision infrastructure
 
@@ -118,10 +117,6 @@ The workflow builds Lambda images with **Docker Buildx** (`linux/amd64`, `--prov
 ### Database migrations
 
 - After the first deploy, run **schema migrations** against RDS (e.g. Alembic) from a host that can reach the private instance (bastion, VPN, or one-off ECS/CodeBuild task) if your app expects tables beyond what Terraform creates.
-
-## MCP helpers (Cursor)
-
-This repo includes [.cursor/mcp.json](.cursor/mcp.json) with [AWS Documentation](https://github.com/awslabs/mcp/tree/main/src/aws-documentation-mcp-server) and [AWS IaC](https://github.com/awslabs/mcp/tree/main/src/aws-iac-mcp-server) servers from [awslabs/mcp](https://github.com/awslabs/mcp). Install `uv`, reload MCP in Cursor, and approve the tools when prompted. For live AWS API calls from the assistant, you can also use the managed **AWS MCP Server** ([install](https://github.com/awslabs/mcp#getting-started-with-aws)).
 
 ## Local development
 

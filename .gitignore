@@ -31,6 +31,12 @@ build/
 .env.local
 .env.*.local
 
+# Generated assets
+generated-diagrams/
+
+# Cursor (local MCP / IDE)
+.cursor/
+
 # OS / editor
 .DS_Store
 *.log
