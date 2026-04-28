@@ -2,7 +2,7 @@
 Database Configuration & Session Management
 """
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool, StaticPool
 import os
@@ -63,8 +63,17 @@ def get_db() -> Session:
 
 # Helper to create tables
 def init_db():
-    """Initialize database tables"""
+    """Initialize database tables (idempotent - skips if tables exist)"""
     from app.models import Base
+
+    # Check if tables already exist by inspecting the schema
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+
+    if existing_tables:
+        print(f"✓ Database already initialized ({len(existing_tables)} tables found)")
+        return
+
     Base.metadata.create_all(bind=engine)
     print("✓ Database tables created successfully")
 
