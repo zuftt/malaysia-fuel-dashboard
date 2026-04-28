@@ -21,13 +21,6 @@ from app.models import GovernmentAnnouncement
 
 logger = logging.getLogger(__name__)
 
-# Try to import Webz.io fetcher (optional dependency)
-try:
-    from app.webz_news_fetcher import sync_webz_news
-    HAS_WEBZ = True
-except ImportError:
-    HAS_WEBZ = False
-
 # Malaysia / fuel context — article must match at least one gate term
 _GATE_TERMS = re.compile(
     r"\b(malaysia|malaysian|my\b|petronas|putrajaya|kuala|apm|kpdn|mof|sinar|"
@@ -45,12 +38,16 @@ _TOPIC_TERMS = re.compile(
 
 DEFAULT_RSS_FEEDS: tuple[tuple[str, str], ...] = (
     (
-        "Google News — Malaysia fuel",
-        "https://news.google.com/rss/search?q=Malaysia+%28fuel+OR+petrol+OR+diesel+OR+RON+OR+subsidi+minyak%29&hl=en-MY&gl=MY&ceid=MY:en",
+        "Bing News — Malaysia fuel (EN)",
+        "https://www.bing.com/news/search?q=Malaysia+petrol+RON95+price+fuel&format=rss",
     ),
     (
-        "Google News — BM minyak",
-        "https://news.google.com/rss/search?q=minyak+RON+subsidi+harga+Malaysia&hl=ms&gl=MY&ceid=MY:ms",
+        "Bing News — harga minyak (BM)",
+        "https://www.bing.com/news/search?q=harga+minyak+Malaysia+RON95+diesel&format=rss",
+    ),
+    (
+        "Bing News — fuel subsidy BUDI",
+        "https://www.bing.com/news/search?q=Malaysia+fuel+subsidy+BUDI95&format=rss",
     ),
 )
 
@@ -103,23 +100,21 @@ def _rss_urls() -> tuple[tuple[str, str], ...]:
 
 def sync_news_feeds(session: Session, max_total: int = 24) -> dict[str, Any]:
     """
-    Fetch news from primary source (Webz.io API if available, else RSS feeds).
-    Filter by relevance, upsert into government_announcements.
+    Fetch news from Bing News RSS feeds. Filter by relevance,
+    upsert into government_announcements.
 
     Uses (source, source_url) uniqueness from the model.
     """
-    # Try Webz.io first (more reliable than Google News RSS which blocks)
-    if HAS_WEBZ and os.getenv("WEBZ_IO_API_KEY", "").strip():
+    # Try NewsAPI.org first (key required, 100 req/day free tier).
+    if os.getenv("NEWSAPI_KEY", "").strip():
         try:
-            logger.info("Syncing from Webz.io (primary source)...")
-            result = sync_webz_news(session)
-            logger.info(f"Webz.io sync result: {result}")
-            return result
+            from app.newsapi_fetcher import sync_newsapi
+            logger.info("Syncing from NewsAPI.org (primary)...")
+            return sync_newsapi(session)
         except Exception as e:
-            logger.warning(f"Webz.io sync failed, falling back to RSS: {e}")
+            logger.warning("NewsAPI sync failed, falling back to Bing RSS: %s", e)
 
-    # Fall back to RSS feeds
-    logger.info("Using RSS feeds (fallback)...")
+    logger.info("Syncing from Bing News RSS feeds...")
     inserted = 0
     updated = 0
     skipped = 0

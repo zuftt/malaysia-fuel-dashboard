@@ -33,6 +33,8 @@ ALLOWED_HOSTS: tuple[str, ...] = (
     "data.gov.my",
     "treasury.gov.my",
     "kpdn.gov.my",
+    # News RSS feeds.
+    "bing.com",
 )
 
 
