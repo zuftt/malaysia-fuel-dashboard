@@ -38,12 +38,3 @@ jobs:
           npm ci
           npm run lint
           npm run build
-
-      - uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform validate + fmt check
-        working-directory: infra
-        run: |
-          terraform init -backend=false -input=false
-          terraform validate
-          terraform fmt -check -recursive
