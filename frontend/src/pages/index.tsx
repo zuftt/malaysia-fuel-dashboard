@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import axios from 'axios';
 import { API_URL, DATA_GOV_MY_FUEL_CATALOGUE, DATA_GOV_MY_FUEL_CSV } from '../lib/constants';
+import { cacheRead, cacheWrite, CACHE_KEYS } from '../lib/cache';
 import type {
   FuelPrice,
   TrendData,
@@ -91,9 +92,73 @@ export default function Home() {
     let cancelled = false;
     const req = { timeout: 25_000 };
 
+    // ── Restore from cache immediately so the page isn't blank during API cold start ──
+    const cached = {
+      latest:  cacheRead<Record<string, unknown>>(CACHE_KEYS.pricesLatest),
+      history: cacheRead<TrendData[]>(CACHE_KEYS.pricesHistory),
+      pump:    cacheRead<PumpStationsPayload>(CACHE_KEYS.pumpStations),
+      asean:   cacheRead<Record<string, unknown>>(CACHE_KEYS.aseanCompare),
+      news:    cacheRead<NewsArticle[]>(CACHE_KEYS.news),
+    };
+
+    const applyPricePayload = (payload: Record<string, unknown>) => {
+      const row = (payload?.data ?? payload) as FuelPrice;
+      setPrices(row);
+      if (typeof payload.source_url === 'string' && typeof payload.timestamp === 'string') {
+        setPriceMeta({
+          retrievedAt: payload.timestamp,
+          sourceUrl: payload.source_url || DATA_GOV_MY_FUEL_CSV,
+          sourceCatalogueUrl:
+            typeof payload.source_catalogue_url === 'string'
+              ? payload.source_catalogue_url
+              : DATA_GOV_MY_FUEL_CATALOGUE,
+        });
+      } else {
+        setPriceMeta(null);
+      }
+    };
+
+    const applyAseanPayload = (aseanPayload: Record<string, unknown>) => {
+      setAseanRows(Array.isArray(aseanPayload.data) ? aseanPayload.data : []);
+      setAseanRates(
+        aseanPayload.exchange_rates && typeof aseanPayload.exchange_rates === 'object'
+          ? (aseanPayload.exchange_rates as Record<string, number>)
+          : {},
+      );
+      const fxInfo = aseanPayload.exchange_rates_info;
+      if (
+        fxInfo &&
+        typeof fxInfo === 'object' &&
+        typeof (fxInfo as ExchangeRatesInfo).provider === 'string' &&
+        typeof (fxInfo as ExchangeRatesInfo).used_static_fallback === 'boolean' &&
+        typeof (fxInfo as ExchangeRatesInfo).message === 'string'
+      ) {
+        setAseanRatesInfo(fxInfo as ExchangeRatesInfo);
+      } else {
+        setAseanRatesInfo(null);
+      }
+      setAseanUpdated((aseanPayload.updated_at as string) ?? null);
+    };
+
+    // Paint from cache — user sees data instantly even during cold start.
+    let hasCachedData = false;
+    if (cached.latest) { applyPricePayload(cached.latest); hasCachedData = true; }
+    if (cached.history) { setTrends(cached.history); hasCachedData = true; }
+    if (cached.pump) {
+      const rows = Array.isArray(cached.pump.data) ? cached.pump.data : [];
+      setPumpRows(rows);
+      if (typeof cached.pump.timestamp === 'string') setPumpRetrievedAt(cached.pump.timestamp);
+      hasCachedData = true;
+    }
+    if (cached.asean) { applyAseanPayload(cached.asean); hasCachedData = true; }
+    if (cached.news) { setArticles(cached.news); hasCachedData = true; }
+
+    // If we painted from cache, skip the loading skeleton on this pass.
+    if (hasCachedData) setLoading(false);
+
     const fetchData = async (background: boolean) => {
       try {
-        if (!background) setLoading(true);
+        if (!background && !hasCachedData) setLoading(true);
         const [priceRes, trendRes, newsRes, aseanRes, pumpRes] = await Promise.all([
           axios.get(`${API_URL}/api/v1/prices/latest`, req),
           axios.get(`${API_URL}/api/v1/prices/history?days=84`, req),
@@ -171,6 +236,13 @@ export default function Home() {
         const rows = Array.isArray(pumpPayload.data) ? pumpPayload.data : [];
         setPumpRows(rows);
         setPumpRetrievedAt(typeof pumpPayload.timestamp === 'string' ? pumpPayload.timestamp : null);
+
+        // ── Write fresh data to cache ──────────────────────────────────────
+        if (payload) cacheWrite(CACHE_KEYS.pricesLatest, payload, 'weekly-thursday');
+        if (trendData.length) cacheWrite(CACHE_KEYS.pricesHistory, trendData, 'weekly-thursday');
+        if (rows.length) cacheWrite(CACHE_KEYS.pumpStations, pumpRes.data, 'weekly-thursday');
+        if (aseanPayload.data) cacheWrite(CACHE_KEYS.aseanCompare, aseanPayload, 'daily');
+        if (newsRows.length) cacheWrite(CACHE_KEYS.news, newsRows, 'half-hour');
 
         if (trendData.length >= 2) {
           const dates = [...new Set(trendData.map((t: TrendData) => t.date))].sort().reverse();
