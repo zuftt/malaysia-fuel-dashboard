@@ -213,10 +213,7 @@ def _motorist_rows_from_grade(grade: str, price: float) -> list[dict[str, Any]]:
 
     def emit(station: str, slot: str) -> list[dict[str, Any]]:
         if east:
-            return [
-                _pump_row_for_slot(station=station, location="Sabah", slot=slot, price=price),
-                _pump_row_for_slot(station=station, location="Sarawak", slot=slot, price=price),
-            ]
+            return [_pump_row_for_slot(station=station, location="Sabah & Sarawak", slot=slot, price=price)]
         return [_pump_row_for_slot(station=station, location=None, slot=slot, price=price)]
 
     if "diesel" in g:
@@ -337,24 +334,22 @@ def parse_shell_fuelprice_xlsx(content: bytes) -> list[dict[str, Any]]:
                 )
             )
         if east is not None:
-            out.append(_pump_row_for_slot(station=station, location="Sabah", slot=slot, price=east))
-            out.append(_pump_row_for_slot(station=station, location="Sarawak", slot=slot, price=east))
+            out.append(_pump_row_for_slot(station=station, location="Sabah & Sarawak", slot=slot, price=east))
     return out
 
 
 def expand_east_malaysia_to_sabah_sarawak(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Legacy cache rows only: split old *East Malaysia* / *(East)* into Sabah + Sarawak."""
+    """Legacy cache rows: normalise old *East Malaysia* / *(East)* to *Sabah & Sarawak*."""
     out: list[dict[str, Any]] = []
     for r in rows:
         loc = (r.get("location") or "").strip()
         st = str(r.get("station") or "")
-        is_east = loc == "East Malaysia" or re.search(r"\(East\)", st, re.I) is not None
+        is_east = loc in ("East Malaysia", "Sabah", "Sarawak") or re.search(r"\(East\)", st, re.I) is not None
         if not is_east:
             out.append(r)
             continue
         base = re.sub(r"\s*\(East\)", "", st, flags=re.I).strip()
-        for place in ("Sabah", "Sarawak"):
-            out.append({**r, "station": base, "location": place})
+        out.append({**r, "station": base, "location": "Sabah & Sarawak"})
     return out
 
 

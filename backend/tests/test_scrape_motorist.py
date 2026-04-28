@@ -71,9 +71,9 @@ RM 2.35
 ## Fuel Prices Trend
 """
     rows = parse_motorist_latest_pump_markdown(md)
-    assert len(rows) == 2
-    assert {r["location"] for r in rows} == {"Sabah", "Sarawak"}
-    assert all(r["station"] == "Diesel B7" for r in rows)
+    assert len(rows) == 1
+    assert rows[0]["location"] == "Sabah & Sarawak"
+    assert rows[0]["station"] == "Diesel B7"
     assert rows[0]["diesel_b7"] == 2.35
 
 
@@ -87,9 +87,9 @@ def test_expand_east_to_sabah_sarawak():
             }
         ]
     )
-    assert len(rows) == 2
-    assert {r["location"] for r in rows} == {"Sabah", "Sarawak"}
-    assert all(r["station"] == "Diesel B7" for r in rows)
+    assert len(rows) == 1
+    assert rows[0]["location"] == "Sabah & Sarawak"
+    assert rows[0]["station"] == "Diesel B7"
 
 
 def test_parse_shell_xlsx_peninsular_sabah_sarawak():
@@ -102,13 +102,12 @@ def test_parse_shell_xlsx_peninsular_sabah_sarawak():
         }
     ).to_excel(buf, index=False)
     rows = parse_shell_fuelprice_xlsx(buf.getvalue())
-    assert len(rows) == 6
+    assert len(rows) == 4
     locs = [r["location"] for r in rows]
     assert locs.count("Peninsular Malaysia") == 2
-    assert locs.count("Sabah") == 2
-    assert locs.count("Sarawak") == 2
-    sabah_b7 = next(r for r in rows if r["location"] == "Sabah" and r.get("diesel_b7"))
-    assert sabah_b7["diesel_b7"] == 2.35
+    assert locs.count("Sabah & Sarawak") == 2
+    east_b7 = next(r for r in rows if r["location"] == "Sabah & Sarawak" and r.get("diesel_b7"))
+    assert east_b7["diesel_b7"] == 2.35
 
 
 def test_parse_shell_html_skips_ron100_and_maps_grades():
