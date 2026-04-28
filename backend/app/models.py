@@ -194,3 +194,30 @@ class AlertConfig(Base):
     __table_args__ = (
         UniqueConstraint('fuel_type', name='uq_fuel_type'),
     )
+
+
+class AseanFuelPrice(Base):
+    """
+    Normalised retail fuel prices across ASEAN (one row per country + effective date + fuel type).
+    """
+
+    __tablename__ = "asean_fuel_prices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    country = Column(String(2), nullable=False, index=True)
+    country_name = Column(String(100), nullable=False)
+    date = Column(DateTime, nullable=False)
+    fuel_type = Column(String(20), nullable=False)
+    local_price = Column(DECIMAL(14, 4), nullable=False)
+    currency = Column(String(3), nullable=False)
+    usd_price = Column(DECIMAL(14, 6), nullable=False)
+    is_subsidised = Column(Boolean, default=False, nullable=False)
+    source_url = Column(String(500), nullable=True)
+    source = Column(String(120), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("country", "date", "fuel_type", name="uq_asean_country_date_fuel"),
+        Index("idx_asean_country_date", "country", "date"),
+    )

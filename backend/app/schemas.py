@@ -46,7 +46,78 @@ class FuelPrice(FuelPriceBase):
 
 
 class FuelPriceResponse(BaseModel):
+    """Latest row plus provenance for the client (see CONTENT_RULES.md)."""
+
     data: FuelPrice
+    timestamp: datetime  # when this snapshot was last written by our sync (row updated_at)
+    source_url: str  # CSV endpoint we read
+    source_catalogue_url: str  # Human-readable catalogue page on data.gov.my
+
+
+# ============ ASEAN regional comparison ============
+
+class AseanCompareRow(BaseModel):
+    country: str
+    country_name: str
+    fuel_type: str
+    local_name: str  # human-readable local product name (e.g. "Pertalite", "Gasohol 95")
+    local_price: float
+    currency: str
+    usd_price: float
+    is_subsidised: bool
+    date: date
+    source: str  # where the row came from (e.g. "data.gov.my", "seed+fallback")
+    source_url: Optional[str] = None
+
+
+class ExchangeRatesInfo(BaseModel):
+    """How ``exchange_rates`` on the compare response were produced (Fixer, exchangerate.host, or static)."""
+
+    provider: str = "none"
+    used_static_fallback: bool = False
+    message: str = ""
+
+
+class AseanCompareResponse(BaseModel):
+    """Cross-country retail prices normalised to USD per litre."""
+
+    data: List[AseanCompareRow]
+    exchange_rates: dict[str, float]
+    updated_at: datetime
+    exchange_rates_info: ExchangeRatesInfo = Field(default_factory=ExchangeRatesInfo)
+
+
+class AseanHistoryRow(AseanCompareRow):
+    """One dated snapshot; `usd_uses_latest_fx` when USD/litre was derived from MYR at response time."""
+
+    usd_uses_latest_fx: bool = False
+
+
+class AseanHistoryResponse(BaseModel):
+    """Time series from `asean_fuel_prices` plus optional Malaysia weekly official rows."""
+
+    data: List[AseanHistoryRow]
+    days: int
+    malaysia_usd_uses_latest_fx: bool = False
+    note: str = ""
+
+
+class PumpStationPriceRow(BaseModel):
+    station: str
+    location: Optional[str] = None
+    ron95_budi: Optional[float] = None
+    ron95: Optional[float] = None
+    ron97: Optional[float] = None
+    vpower: Optional[float] = None
+    ron100: Optional[float] = None
+    diesel: Optional[float] = None
+    diesel_b7: Optional[float] = None
+    updated_at: Optional[str] = None
+
+
+class PumpStationPriceResponse(BaseModel):
+    data: List[PumpStationPriceRow]
+    count: int
     timestamp: datetime
 
 

@@ -6,9 +6,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool, StaticPool
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()
+# Always load backend/.env (not only cwd) so FIXER_ACCESS_KEY / DB URL work from repo root.
+_backend_root = Path(__file__).resolve().parent.parent
+load_dotenv(_backend_root / ".env")
 
 # Database URL from environment or use SQLite for development
 DATABASE_URL = os.getenv(
