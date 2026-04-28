@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600;700&display=swap");
 
 * {
   margin: 0;
@@ -15,16 +14,284 @@ html {
   scroll-behavior: smooth;
 }
 
-body {
-  font-family: 'Inter', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+:root {
+  --paper: #fafaf7;
+  --panel: #ffffff;
+  --ink: #0a0a0a;
+  --ink-muted: #4b4b48;
+  --ink-soft: #6b6b68;
+  --rule: #1a1a1a;
+  --rule-soft: #e5e5e0;
+  --accent: #0b5cad;
+  --ticker: #c24300;
+  --up: #b91c1c;
+  --down: #15803d;
 }
 
-.font-headline {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+html,
+body {
+  background: var(--paper);
+}
+
+body {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+}
+
+a {
+  text-decoration: none;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-feature-settings: "tnum";
+}
+
+.serif {
+  font-family: "IBM Plex Serif", "Times New Roman", Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Dense flat panel */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--rule-soft);
+  border-radius: 2px;
+}
+
+.panel-heavy {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+/* Ticker header cell */
+.cell-label {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Section eyebrow strap */
+.eyebrow {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ticker);
+}
+
+/* Dense table reset */
+table.terminal {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+table.terminal thead tr {
+  border-bottom: 1px solid var(--rule);
+}
+table.terminal tbody tr {
+  border-bottom: 1px solid var(--rule-soft);
+}
+table.terminal tbody tr:last-child {
+  border-bottom: 0;
+}
+table.terminal th {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 8px 10px;
+  text-align: left;
+}
+table.terminal td {
+  padding: 9px 10px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+/* Grade + price: full width, stretch columns, wrap long grades on small screens. */
+table.terminal.terminal--grades {
+  table-layout: fixed;
+}
+table.terminal.terminal--grades th:first-child,
+table.terminal.terminal--grades td:first-child {
+  width: 62%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+  vertical-align: top;
+}
+table.terminal.terminal--grades th:last-child,
+table.terminal.terminal--grades td:last-child {
+  width: 38%;
+  text-align: right;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+/* Tab buttons */
+.tab-btn {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  min-height: 44px;
+  border: 1px solid var(--rule-soft);
+  background: var(--panel);
+  color: var(--ink-muted);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.tab-btn:hover {
+  background: #f3f3ee;
+  color: var(--ink);
+}
+.tab-btn[aria-selected="true"],
+.tab-btn.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* Disclosure styling */
+details.disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+details.disclosure > summary .chev {
+  transition: transform 180ms ease;
+}
+details.disclosure[open] > summary .chev {
+  transform: rotate(90deg);
 }
 
 .material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Skeleton shimmer for loading placeholders. */
+@keyframes rr-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.rr-skeleton {
+  background: linear-gradient(
+    90deg,
+    #efefe9 0%,
+    #f6f6f1 50%,
+    #efefe9 100%
+  );
+  background-size: 800px 100%;
+  animation: rr-shimmer 1.4s linear infinite;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rr-skeleton {
+    animation: none;
+    background: #efefe9;
+  }
+}
+
+/* One-shot entrance: opacity + translate3d only (compositor-friendly). */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes rr-fade-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes rr-header-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .rr-fade-rise {
+    animation: rr-fade-rise 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .rr-header-in {
+    animation: rr-header-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .rr-delay-0 {
+    animation-delay: 0ms;
+  }
+  .rr-delay-1 {
+    animation-delay: 65ms;
+  }
+  .rr-delay-2 {
+    animation-delay: 130ms;
+  }
+  .rr-delay-3 {
+    animation-delay: 195ms;
+  }
+  .rr-delay-4 {
+    animation-delay: 260ms;
+  }
+  .rr-delay-5 {
+    animation-delay: 325ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rr-fade-rise,
+  .rr-header-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+}
+
+/* Subtle hover on price panels — transition only (no continuous animation). */
+.panel-elevate {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .panel-elevate:hover {
+    box-shadow: 0 10px 28px -8px rgba(10, 10, 10, 0.1);
+    border-color: #d8d8d0;
+  }
 }

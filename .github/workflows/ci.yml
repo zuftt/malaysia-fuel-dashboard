@@ -19,6 +19,7 @@ jobs:
       - name: Backend tests
         env:
           NEWS_SYNC_ON_STARTUP: "false"
+          ASEAN_SYNC_ON_STARTUP: "false"
         run: |
           pip install -r backend/requirements.txt -r backend/requirements-dev.txt
           cd backend && pytest -q

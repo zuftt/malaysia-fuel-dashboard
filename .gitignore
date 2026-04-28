@@ -6,6 +6,9 @@ __pycache__/
 venv/
 env/
 
+# Backend FX cache (Fixer daily snapshot)
+backend/.cache/
+
 # Databases
 *.db
 *.sqlite

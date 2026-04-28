@@ -74,6 +74,20 @@ def _publish_price_change(old_prices: dict, new_prices: dict, date: str):
     logger.info(f"SNS notification published: {len(changes)} price changes")
 
 
+def _run_asean_sync(db):
+    """Refresh `asean_fuel_prices` (FX + regional sources); failures are logged only."""
+    try:
+        from app.asean_scraper import sync_asean_prices
+
+        asean_result = sync_asean_prices(db)
+        logger.info(
+            "ASEAN sync complete: %s rows upserted",
+            asean_result.get("upserted", 0),
+        )
+    except Exception as asean_err:
+        logger.warning("ASEAN sync failed (non-fatal): %s", asean_err, exc_info=True)
+
+
 def handler(event, context):
     """
     Lambda entry point. Triggered by EventBridge schedule.
@@ -114,6 +128,7 @@ def handler(event, context):
 
         if existing:
             logger.info(f"Prices for {date_str} already exist, skipping")
+            _run_asean_sync(db)
             return {"statusCode": 200, "body": f"Already up to date: {date_str}"}
 
         # Get previous latest prices for comparison
@@ -171,6 +186,8 @@ def handler(event, context):
 
         db.commit()
         logger.info(f"Stored new prices for {date_str}")
+
+        _run_asean_sync(db)
 
         # Publish SNS notification if prices changed
         _publish_price_change(old_prices, new_prices, date_str)

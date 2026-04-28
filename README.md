@@ -1,6 +1,8 @@
-# Malaysia Fuel Price Dashboard
+# RONradar
 
-A serverless full-stack app that tracks Malaysia’s weekly fuel prices from [data.gov.my](https://data.gov.my/) and displays them in a dashboard. Deployed on **AWS** with **Terraform** and **GitHub Actions** (OIDC — no static AWS keys in CI).
+A serverless full-stack app that tracks Malaysia’s weekly fuel prices from [data.gov.my](https://data.gov.my/) and displays them in a dashboard. Deployed on **AWS** with **Terraform** and **GitHub Actions** (OIDC, no static AWS keys in CI).
+
+All user-facing copy, disclaimers, and data labelling follow **[CONTENT_RULES.md](CONTENT_RULES.md)**. Update that file when policy or sources change.
 
 ![Architecture](infra/aws_architecture.png)
 
@@ -15,6 +17,8 @@ A serverless full-stack app that tracks Malaysia’s weekly fuel prices from [da
 Interactive API docs: `/docs` when the backend is running locally or via CloudFront `/api/*`.
 
 **Berita Terkini** pulls live RSS headlines (fuel / subsidy related), stores them in Postgres/SQLite, and links out to sources. Tune feeds with env var `NEWS_RSS_URLS` (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)).
+
+**Perbandingan ASEAN** stores normalised retail prices (MY, SG, TH, ID, BN, PH) in `asean_fuel_prices`, synced from open data + light scraping + manual seeds where noted. API: `GET /api/v1/prices/compare`. Set **`ASEAN_SYNC_ON_STARTUP=false`** in CI/tests to skip network sync (same idea as `NEWS_SYNC_ON_STARTUP`).
 
 ## Quick start (local)
 
@@ -38,7 +42,7 @@ More detail: [infra/README.md](infra/README.md). Architecture notes: [docs/ARCHI
 ## Testing (local)
 
 ```bash
-# Backend — needs network on first run (sync from data.gov.my)
+# Backend — CI sets NEWS_SYNC_ON_STARTUP=false & ASEAN_SYNC_ON_STARTUP=false (no RSS/ASEAN network on import)
 cd backend && pip install -r requirements.txt -r requirements-dev.txt && pytest -q
 
 # Frontend

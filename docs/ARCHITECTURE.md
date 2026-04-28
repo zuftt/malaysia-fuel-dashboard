@@ -15,6 +15,14 @@ High-level view of what runs in production (aligned with [infra/aws_architecture
 - **DynamoDB** holds subscription / visitor-counter style state used by the API.
 - **SNS** sends price-alert notifications when the scraper detects changes.
 
+## ASEAN fuel comparison
+
+- **Table:** `asean_fuel_prices` — one row per `country`, effective `date`, and `fuel_type` (RON95, RON97, Diesel), with `local_price`, `currency`, `usd_price`, `is_subsidised`, `source`, `source_url`.
+- **Ingestion:** `asean_scraper.py` — Malaysia reuses the data.gov.my CSV; Singapore (motorist.sg HTML heuristic), Thailand (EPPO CSV attempt + seed fallback), Indonesia (mypertamina scrape + seed), Brunei & Philippines (manual seed in Phase 1). FX to USD via **exchangerate.host** (`USD` base) with static fallback if the API fails.
+- **API:** `GET /api/v1/prices/compare` returns `{ data, exchange_rates, updated_at }`. The previous Malaysia-vs-global benchmark response is at **`GET /api/v1/prices/malaysia-vs-global`** (same payload as the old `/compare` route).
+- **When it runs:** FastAPI startup calls `sync_asean_prices` when **`ASEAN_SYNC_ON_STARTUP`** is true (default). The **scraper Lambda** runs ASEAN sync on every schedule tick (including when Malaysia prices are already up to date) so FX and regional rows refresh weekly.
+- **Env:** `ASEAN_SYNC_ON_STARTUP` — set `false` in CI (see `.github/workflows/ci.yml`) and tests (`backend/tests/conftest.py`) to avoid outbound calls.
+
 ## News (“Berita Terkini”)
 
 Headlines come from **RSS** (default: Google News searches for Malaysia fuel / subsidy / RON), filtered for relevance, then stored in **`government_announcements`** with `announcement_type = News Feed`. The API refreshes when data is **stale** (~4 hours) or on startup (`sync_news_feeds` in `news_fetcher.py`).
