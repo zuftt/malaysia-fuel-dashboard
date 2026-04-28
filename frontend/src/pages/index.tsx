@@ -550,7 +550,7 @@ export default function Home() {
             id="news"
             eyebrow="Feed"
             title="Berita Terkini"
-            description="Latest fuel-related headlines from Malaysian news sources via Google News RSS."
+            description="Latest fuel-related headlines from Malaysian news sources via Webz.io News API."
             bare
           >
             <NewsGrid articles={articles} />
