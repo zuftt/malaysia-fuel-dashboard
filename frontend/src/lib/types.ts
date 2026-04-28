@@ -71,4 +71,5 @@ export type PopularCar = {
   tank: number;
   consumption: number;
   quota: number;
+  years?: string;
 };

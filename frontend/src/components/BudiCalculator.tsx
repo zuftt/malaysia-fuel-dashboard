@@ -122,7 +122,7 @@ export function BudiCalculator({ prices }: Props) {
                     <optgroup key={brand} label={brand}>
                       {cars.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name} — {c.category} ({c.tank}L tank, {c.consumption} L/100 km)
+                          {c.name}{c.years ? ` (${c.years})` : ''} — {c.category} · {c.tank}L tank · {c.consumption} L/100 km
                         </option>
                       ))}
                     </optgroup>
@@ -214,7 +214,7 @@ export function BudiCalculator({ prices }: Props) {
           )}
 
           <p className="text-[11px] mono tracking-[0.04em] text-[#6b6b68] mb-4 border-l-2 border-[#1a1a1a] pl-3 py-1">
-            Subsidised RON 95 RM {budiPrice.toFixed(2)}/L · market RON 95 RM {marketPrice.toFixed(2)}/L · week {priceWeekLabel} · quota assumption {quota}L/mo ({selectedCar.quota === 100 ? 'motorcycle' : 'car'} profile).
+            Subsidised RON 95 RM {budiPrice.toFixed(2)}/L · market RON 95 RM {marketPrice.toFixed(2)}/L · week {priceWeekLabel} · quota assumption {quota}L/mo.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 -space-x-px -space-y-px">
