@@ -54,27 +54,6 @@ def _pump_response_without_ron100(resp: PumpStationPriceResponse) -> PumpStation
 
 DATA_GOV_MY_FUEL_CATALOGUE = "https://data.gov.my/data-catalogue/fuelprice"
 
-# DynamoDB visitor counter (optional — only in AWS)
-_dynamodb = None
-
-def _increment_visitor_count():
-    """Atomic counter in DynamoDB — tracks API usage."""
-    global _dynamodb
-    table_name = os.environ.get("DYNAMODB_TABLE")
-    if not table_name:
-        return
-    try:
-        if _dynamodb is None:
-            import boto3
-            _dynamodb = boto3.resource("dynamodb").Table(table_name)
-        _dynamodb.update_item(
-            Key={"email": "visitor_counter", "fuel_type": "api_hits"},
-            UpdateExpression="ADD visit_count :inc",
-            ExpressionAttributeValues={":inc": 1},
-        )
-    except Exception as e:
-        logger.debug(f"Visitor counter skipped: {e}")
-
 router = APIRouter()
 
 
@@ -84,8 +63,6 @@ async def get_latest_prices(db: Session = Depends(get_db)):
     Get latest fuel prices
     Returns the most recent price update
     """
-    _increment_visitor_count()
-
     latest = db.query(FuelPrice).order_by(desc(FuelPrice.effective_date)).first()
 
     if not latest:

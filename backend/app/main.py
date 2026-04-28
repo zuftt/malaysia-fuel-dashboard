@@ -226,15 +226,6 @@ async def global_exception_handler(request, exc):
     )
 
 
-# Lambda handler via Mangum (optional — not required for local API or pytest)
-try:
-    from mangum import Mangum
-
-    handler = Mangum(app, lifespan="off")
-except ImportError:
-    handler = None  # type: ignore[misc, assignment]
-
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
