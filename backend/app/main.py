@@ -22,7 +22,7 @@ if os.getenv("SENTRY_DSN"):
 from app.database import init_db, SessionLocal
 from app.api import prices, news, trends, admin, auth
 from app.data_fetcher import sync_fuel_prices
-from app.news_fetcher import sync_news_feeds
+from app.webz_news_fetcher import sync_webz_news
 from app.asean_scraper import sync_asean_prices
 
 # Logging setup
@@ -80,18 +80,18 @@ async def startup_event():
         except Exception as e:
             logger.warning(f"⚠ Fuel data sync failed (non-fatal): {e}")
 
-        # Live RSS headlines (fuel / subsidy — skip in CI via NEWS_SYNC_ON_STARTUP=false)
+        # Webz.io news (fuel & subsidy news — skip in CI via NEWS_SYNC_ON_STARTUP=false)
         if os.getenv("NEWS_SYNC_ON_STARTUP", "true").lower() in ("1", "true", "yes"):
             try:
-                ns = sync_news_feeds(db)
+                ns = sync_webz_news(db)
                 logger.info(
-                    "✓ News RSS: %s new, %s updated, %s skipped",
+                    "✓ Webz.io news: %s new, %s updated, %s skipped",
                     ns.get("inserted", 0),
                     ns.get("updated", 0),
                     ns.get("skipped", 0),
                 )
             except Exception as e:
-                logger.warning(f"⚠ News RSS sync failed (non-fatal): {e}")
+                logger.warning(f"⚠ Webz.io news sync failed (non-fatal): {e}")
 
         if os.getenv("ASEAN_SYNC_ON_STARTUP", "true").lower() in ("1", "true", "yes"):
             try:
