@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Backend tests
+        env:
+          NEWS_SYNC_ON_STARTUP: "false"
+          ASEAN_SYNC_ON_STARTUP: "false"
+        run: |
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+          cd backend && pytest -q
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend lint + build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: ""
+        run: |
+          npm ci
+          npm run lint
+          npm run build

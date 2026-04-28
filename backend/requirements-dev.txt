@@ -1,0 +1,2 @@
+# Local / CI checks only (not installed in Lambda image)
+pytest>=8.0,<9
