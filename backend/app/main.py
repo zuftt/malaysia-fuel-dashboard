@@ -10,10 +10,20 @@ import os
 from datetime import datetime
 import logging
 
+# Initialize Sentry for error tracking (if enabled)
+if os.getenv("SENTRY_DSN"):
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=os.getenv("SENTRY_DSN"),
+        traces_sample_rate=0.1,
+        environment=os.getenv("ENVIRONMENT", "development")
+    )
+
 from app.database import init_db, SessionLocal
 from app.api import prices, news, trends, admin, auth
 from app.data_fetcher import sync_fuel_prices
 from app.news_fetcher import sync_news_feeds
+from app.asean_scraper import sync_asean_prices
 
 # Logging setup
 logging.basicConfig(
@@ -38,7 +48,8 @@ app.add_middleware(
         o.strip()
         for o in os.getenv(
             "CORS_ORIGINS",
-            "http://localhost:3000,http://127.0.0.1:3000",
+            "http://localhost:3000,http://127.0.0.1:3000,"
+            "http://localhost:3001,http://127.0.0.1:3001",
         ).split(",")
         if o.strip()
     ],
@@ -81,6 +92,13 @@ async def startup_event():
                 )
             except Exception as e:
                 logger.warning(f"⚠ News RSS sync failed (non-fatal): {e}")
+
+        if os.getenv("ASEAN_SYNC_ON_STARTUP", "true").lower() in ("1", "true", "yes"):
+            try:
+                ar = sync_asean_prices(db)
+                logger.info("✓ ASEAN fuel sync: %s rows upserted", ar.get("upserted", 0))
+            except Exception as e:
+                logger.warning(f"⚠ ASEAN fuel sync failed (non-fatal): {e}")
     finally:
         db.close()
 
@@ -176,9 +194,13 @@ async def global_exception_handler(request, exc):
     )
 
 
-# Lambda handler via Mangum
-from mangum import Mangum
-handler = Mangum(app, lifespan="off")
+# Lambda handler via Mangum (optional — not required for local API or pytest)
+try:
+    from mangum import Mangum
+
+    handler = Mangum(app, lifespan="off")
+except ImportError:
+    handler = None  # type: ignore[misc, assignment]
 
 
 if __name__ == "__main__":
