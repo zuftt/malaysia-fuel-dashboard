@@ -17,15 +17,15 @@ logger = logging.getLogger(__name__)
 WEBZ_API_URL = "https://api.webz.io/newsApiLite"
 WEBZ_API_KEY = os.getenv("WEBZ_IO_API_KEY", "").strip()
 
-# Search queries for different news feeds
+# Search queries — kept short for free-tier compatibility.
 QUERIES = {
-    "fuel_prices_en": "Malaysia fuel price petrol diesel RON95 RON97",
-    "fuel_prices_my": "harga minyak Malaysia petrol diesel RON95",
-    "subsidies": "Malaysia subsidy fuel minyak subsidi",
+    "fuel_prices_en": "Malaysia petrol RON95 price",
+    "fuel_prices_my": "harga minyak Malaysia",
+    "subsidies": "Malaysia fuel subsidy",
 }
 
 
-def fetch_webz_news(query: str, language: str = "english") -> list[dict] | None:
+def fetch_webz_news(query: str) -> list[dict] | None:
     """Fetch news from Webz.io API."""
     if not WEBZ_API_KEY:
         logger.warning("WEBZ_IO_API_KEY not set, skipping news fetch")
@@ -34,9 +34,8 @@ def fetch_webz_news(query: str, language: str = "english") -> list[dict] | None:
     params = {
         "token": WEBZ_API_KEY,
         "q": query,
-        "language": language,
         "sort": "recency",
-        "pageSize": 10,
+        "size": 10,
     }
 
     try:
@@ -44,12 +43,17 @@ def fetch_webz_news(query: str, language: str = "english") -> list[dict] | None:
         resp.raise_for_status()
         data = resp.json()
 
-        if not data.get("posts"):
-            logger.info(f"No posts found for query: {query}")
+        # Log top-level keys so we can diagnose response structure mismatches.
+        logger.info(f"Webz.io response keys for {query!r}: {list(data.keys())} | totalResults={data.get('totalResults', 'n/a')}")
+
+        # newsApiLite returns articles under "posts" key.
+        posts = data.get("posts") or []
+        if not posts:
+            logger.info(f"No posts found for query: {query!r} (keys={list(data.keys())})")
             return []
 
         articles = []
-        for post in data["posts"]:
+        for post in posts:
             articles.append({
                 "title": post.get("title", ""),
                 "description": post.get("text", post.get("summary", "")),
@@ -74,10 +78,8 @@ def sync_webz_news(session: Session) -> dict:
     stats = {"inserted": 0, "updated": 0, "skipped": 0}
 
     for feed_name, query in QUERIES.items():
-        language = "malay" if "_my" in feed_name or feed_name == "subsidies" else "english"
-
-        logger.info(f"Fetching Webz.io {feed_name} ({language}): {query}")
-        articles = fetch_webz_news(query, language)
+        logger.info(f"Fetching Webz.io [{feed_name}]: {query!r}")
+        articles = fetch_webz_news(query)
 
         if not articles:
             continue
