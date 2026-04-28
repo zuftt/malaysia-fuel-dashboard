@@ -1,6 +1,6 @@
 # ⛽ RONradar — Malaysia Fuel Price Dashboard
 
-> Track Malaysia's weekly government fuel price announcements, compare prices across ASEAN, and calculate your monthly BUDI95 subsidy spend.
+> Every Wednesday the government announces new fuel prices. Most Malaysians find out at the pump. RONradar shows you the full picture — the subsidised BUDI95 price, the unsubsidised market rate, how much the gap costs you every month, and how Malaysia compares to the rest of ASEAN.
 
 ![Hero](docs/screenshots/01-hero.png)
 
@@ -16,40 +16,50 @@
 
 ---
 
-## What Is This?
+## The two things it does really well
 
-RONradar pulls official fuel prices from [data.gov.my](https://data.gov.my/) every Thursday and presents them in a clean dashboard — price cards, 12-week trend chart, ASEAN regional comparison, and the latest subsidy news from Malaysian publishers.
+### 1 · See exactly what you're paying — and why
 
-The BUDI95 calculator lets Malaysians estimate their monthly fuel spend based on their car and daily commute, and see exactly how much the government subsidy saves them each month.
+![Price cards](docs/screenshots/02-price-cards.png)
+
+RONradar pulls the official price data from [data.gov.my](https://data.gov.my/) every Thursday and breaks it down clearly:
+
+- **BUDI95 (RM 1.99/L)** — what eligible Malaysians pay at the pump
+- **RON 95 market (RM 3.87/L)** — the unsubsidised ceiling price
+- **RON 97 & Diesel** — full market rates
+- Week-on-week change with direction arrows so you always know if prices went up or down
+
+Plus a 12-week trend chart and a live ASEAN comparison so you can see how Malaysia's prices stack up against Singapore, Thailand, Indonesia, Brunei, and the Philippines.
+
+![ASEAN](docs/screenshots/04-asean.png)
+
+---
+
+### 2 · Calculate your actual BUDI95 savings
+
+![Calculator](docs/screenshots/06-calculator.png)
+
+The gap between RM 1.99 and RM 3.87 is **RM 1.88 per litre**. Over a month of daily commuting that adds up. The BUDI95 calculator tells you exactly how much:
+
+1. Pick your car from a list of 20+ common Malaysian models (Myvi, Axia, Saga, City, Vios…) — tank size and fuel consumption pre-filled
+2. Enter your daily distance
+3. See your estimated monthly litres, cost, and **how much you save vs paying market rate**
+
+It also tells you whether you'll hit the 200L monthly quota before the month ends — and what happens to the excess litres if you do.
 
 ---
 
 ## Screenshots
 
-| Fuel prices | ASEAN comparison |
+| Pump prices & trend | Latest news |
 |---|---|
-| ![Price cards](docs/screenshots/02-price-cards.png) | ![ASEAN](docs/screenshots/04-asean.png) |
-
-| BUDI95 calculator | Berita Terkini |
-|---|---|
-| ![Calculator](docs/screenshots/06-calculator.png) | ![News](docs/screenshots/07-news.png) |
+| ![Price cards](docs/screenshots/02-price-cards.png) | ![News](docs/screenshots/07-news.png) |
 
 <p align="center">
   <img src="docs/screenshots/mobile-02-cards.png" alt="Mobile view" width="300" />
   <br/>
   <em>Mobile (iPhone)</em>
 </p>
-
----
-
-## Features
-
-- 📊 **Weekly price cards** — RON 95 (BUDI95 subsidised + market ceiling), RON 97, Diesel from the official MOF announcement
-- ⛽ **Pump prices** — Shell Malaysia live grades (Peninsular + Sabah & Sarawak), scraped weekly
-- 🌏 **ASEAN comparison** — bar chart + table comparing MY · SG · TH · ID · BN · PH, converted to MYR via live FX rates
-- 📈 **12-week trend chart** — rolling price history
-- 🧮 **BUDI95 calculator** — pick your car model, enter daily distance, see estimated monthly spend and subsidy savings
-- 📰 **Berita Terkini** — latest Malaysia fuel & subsidy headlines via NewsAPI.org
 
 ---
 
