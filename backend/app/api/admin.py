@@ -12,7 +12,7 @@ from app.models import FuelPrice, GovernmentAnnouncement, AlertConfig, ScraperSt
 from app.schemas import (
     PriceValidateRequest, ValidationResponse,
     AlertConfigCreate, AlertConfig as AlertConfigSchema,
-    ScraperStatusResponse
+    ScraperStatusResponse, AnnouncementCreate,
 )
 from app.api.auth import require_admin
 from app.data_fetcher import sync_fuel_prices
@@ -58,7 +58,7 @@ async def validate_price(
 
 @router.post("/announcements/manual")
 async def add_manual_announcement(
-    announcement: dict,
+    announcement: AnnouncementCreate,
     db: Session = Depends(get_db),
     admin_user: User = Depends(require_admin)
 ):
@@ -67,20 +67,20 @@ async def add_manual_announcement(
     """
     try:
         new_announcement = GovernmentAnnouncement(
-            announcement_date=datetime.fromisoformat(announcement.get('announcement_date')),
-            title=announcement.get('title'),
-            content=announcement.get('content'),
-            source=announcement.get('source'),
-            source_url=announcement.get('source_url'),
-            announcement_type=announcement.get('announcement_type'),
-            extracted_prices=announcement.get('extracted_prices'),
-            keywords=announcement.get('keywords', [])
+            announcement_date=announcement.announcement_date,
+            title=announcement.title,
+            content=announcement.content,
+            source=announcement.source,
+            source_url=announcement.source_url,
+            announcement_type=announcement.announcement_type,
+            extracted_prices=announcement.extracted_prices,
+            keywords=announcement.keywords,
         )
-        
+
         db.add(new_announcement)
         db.commit()
         db.refresh(new_announcement)
-        
+
         return {
             "success": True,
             "announcement_id": new_announcement.id,
@@ -88,11 +88,14 @@ async def add_manual_announcement(
         }
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Failed to create announcement")
 
 
 @router.get("/scraper-status")
-async def get_scraper_status(db: Session = Depends(get_db)):
+async def get_scraper_status(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin),
+):
     """
     Check status of automated scraping tasks
     """
@@ -153,7 +156,8 @@ async def create_alert_config(
 @router.get("/alerts/config/{fuel_type}")
 async def get_alert_config(
     fuel_type: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin),
 ):
     """
     Get alert configuration for specific fuel type
@@ -177,7 +181,10 @@ async def get_alert_config(
 
 
 @router.get("/stats")
-async def get_dashboard_stats(db: Session = Depends(get_db)):
+async def get_dashboard_stats(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_admin),
+):
     """
     Get dashboard statistics for admin overview
     """

@@ -3,12 +3,21 @@ FastAPI Application Entry Point
 Malaysia Fuel & Government News Intelligence Dashboard
 """
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from starlette.middleware.base import BaseHTTPMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 import os
 from datetime import datetime
 import logging
+
+
+def _env_truthy(name: str) -> bool:
+    """Strict truthy check — only '1', 'true', 'yes' (case-insensitive) count as true."""
+    return os.getenv(name, "").strip().lower() in ("1", "true", "yes")
 
 # Initialize Sentry for error tracking (if enabled)
 if os.getenv("SENTRY_DSN"):
@@ -32,31 +41,62 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# Initialize FastAPI app — disable interactive docs in production to avoid clickjacking
+# and to reduce attack surface for unauthenticated probing.
+_is_prod = os.getenv("ENVIRONMENT", "development").lower() == "production"
 app = FastAPI(
     title="🇲🇾 Malaysia Fuel & Policy Intelligence Dashboard",
     description="Real-time fuel price monitoring and government policy tracking",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url=None if _is_prod else "/docs",
+    redoc_url=None if _is_prod else "/redoc",
 )
 
-# CORS Middleware
+# CORS — explicit origin allowlist; reject wildcard in env to avoid foot-guns
+# when combined with allow_credentials=True.
+_cors_origins = [
+    o.strip()
+    for o in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:3001,http://127.0.0.1:3001",
+    ).split(",")
+    if o.strip()
+]
+if "*" in _cors_origins:
+    raise RuntimeError(
+        "CORS_ORIGINS must not contain '*' when allow_credentials=True. "
+        "Provide an explicit comma-separated list of origins."
+    )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        o.strip()
-        for o in os.getenv(
-            "CORS_ORIGINS",
-            "http://localhost:3000,http://127.0.0.1:3000,"
-            "http://localhost:3001,http://127.0.0.1:3001",
-        ).split(",")
-        if o.strip()
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Inject baseline security headers on every response."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        if _is_prod:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Rate limiter — protects /auth/login from brute-force enumeration.
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # Event handlers
@@ -180,7 +220,7 @@ async def global_exception_handler(request, exc):
         status_code=500,
         content={
             "error": "Internal Server Error",
-            "details": str(exc) if os.getenv("DEBUG") else "An error occurred",
+            "details": str(exc) if _env_truthy("DEBUG") else "An error occurred",
             "request_id": request.headers.get("x-request-id", "unknown")
         }
     )

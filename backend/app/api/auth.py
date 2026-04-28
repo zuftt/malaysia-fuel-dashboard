@@ -2,10 +2,12 @@
 Authentication API Endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import bcrypt
 import jwt
 import os
@@ -14,10 +16,23 @@ from app.database import get_db
 from app.models import User
 from app.schemas import UserLogin, TokenResponse
 
+# Use the same Limiter instance the app state was wired with in main.py.
+# slowapi keys by remote address; storage is in-memory per worker.
+_limiter = Limiter(key_func=get_remote_address)
+
 router = APIRouter()
 
-# Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+# Configuration — refuse to start without a strong SECRET_KEY.
+_DEFAULT_SECRET = "dev-secret-key-change-in-production"
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if not SECRET_KEY or SECRET_KEY == _DEFAULT_SECRET:
+    raise RuntimeError(
+        "SECRET_KEY env var is missing or set to the placeholder default. "
+        "Generate one with `python -c 'import secrets; print(secrets.token_urlsafe(32))'` "
+        "and set it on Render before starting the API."
+    )
+if len(SECRET_KEY) < 32:
+    raise RuntimeError("SECRET_KEY must be at least 32 characters of high-entropy random data.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
@@ -38,7 +53,7 @@ def create_access_token(user_id: int, role: str):
     payload = {
         "sub": str(user_id),
         "role": role,
-        "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
@@ -91,21 +106,25 @@ async def require_admin(user: User = Depends(get_current_user_dep)) -> User:
     return user
 
 
+# Pre-computed bcrypt hash of a random throwaway password — used to flatten timing
+# when the email is not found, so an attacker can't enumerate accounts via response time.
+_DUMMY_HASH = bcrypt.hashpw(b"timing-attack-defence", bcrypt.gensalt()).decode("utf-8")
+
+
 @router.post("/login", response_model=TokenResponse)
-async def login(credentials: UserLogin, db: Session = Depends(get_db)):
+@_limiter.limit("5/minute")
+async def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
     """
     Login with email and password
     Returns JWT token
     """
     user = db.query(User).filter(User.email == credentials.email).first()
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
+    # Always run bcrypt to keep timing constant regardless of whether email exists.
+    password_hash = user.password_hash if user else _DUMMY_HASH
+    password_ok = verify_password(credentials.password, password_hash)
 
-    if not verify_password(credentials.password, user.password_hash):
+    if not user or not password_ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"

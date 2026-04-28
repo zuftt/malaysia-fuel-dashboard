@@ -53,19 +53,31 @@ PUMP_MAX_AGE_MS_DEFAULT = 172800000
 
 
 def _urls_from_env() -> dict[str, str]:
+    from app.safe_url import assert_safe_url
+
     out: dict[str, str] = {}
     for cc, env_name in FIRECRAWL_URL_ENV.items():
         raw = os.getenv(env_name, "").strip()
-        if raw:
-            if not raw.startswith("http"):
-                raw = "https://" + raw.lstrip("/")
-            out[cc] = raw
+        if not raw:
+            continue
+        if not raw.startswith("http"):
+            raw = "https://" + raw.lstrip("/")
+        try:
+            assert_safe_url(raw)
+        except ValueError as e:
+            print(f"[scrape] Skipping {env_name}: {e}", file=sys.stderr)
+            continue
+        out[cc] = raw
     # Back-compat with existing .env
     legacy = os.getenv("INDO", "").strip()
     if legacy and "ID" not in out:
         if not legacy.startswith("http"):
             legacy = "https://" + legacy.lstrip("/")
-        out["ID"] = legacy
+        try:
+            assert_safe_url(legacy)
+            out["ID"] = legacy
+        except ValueError as e:
+            print(f"[scrape] Skipping INDO: {e}", file=sys.stderr)
     return out
 
 
@@ -543,11 +555,14 @@ def fetch_my_pump_prices_from_env() -> dict[str, Any]:
     All external fetches are invoked only when the API does a *live* pump refresh (cached weekly;
     see ``pump_station_cache.needs_live_scrape``), not on every client reload.
     """
+    from app.safe_url import assert_safe_url
+
     url = os.getenv("MY_PUMP_PRICES", "").strip()
     if not url:
         raise ValueError("Missing MY_PUMP_PRICES URL")
     if not url.startswith("http"):
         url = "https://" + url.lstrip("/")
+    assert_safe_url(url)
 
     if _is_shell_fuelprice_url(url):
         return fetch_shell_my_pump_prices(url)

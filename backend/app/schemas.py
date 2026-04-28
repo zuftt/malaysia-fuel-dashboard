@@ -126,11 +126,11 @@ class PumpStationPriceResponse(BaseModel):
 class AnnouncementBase(BaseModel):
     announcement_date: datetime
     title: str = Field(..., min_length=5, max_length=500)
-    content: Optional[str] = None
+    content: Optional[str] = Field(None, max_length=10000)
     source: str = Field(..., min_length=1, max_length=100)
-    source_url: Optional[str] = None
-    announcement_type: str
-    keywords: List[str] = Field(default_factory=list)
+    source_url: Optional[str] = Field(None, max_length=2000)
+    announcement_type: str = Field(..., min_length=1, max_length=50)
+    keywords: List[str] = Field(default_factory=list, max_length=20)
 
 
 class AnnouncementCreate(AnnouncementBase):

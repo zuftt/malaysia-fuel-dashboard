@@ -69,16 +69,19 @@ def fetch_petron_ron100_row(url: str) -> dict[str, Any] | None:
 
 def append_petron_ron100_if_configured(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """If ``MY_PUMP_PRICES2`` is set, append one RON 100 row when the scrape succeeds."""
+    from app.safe_url import assert_safe_url
+
     raw = os.getenv("MY_PUMP_PRICES2", "").strip()
     if not raw:
         return rows
-    url = raw
-    if not url.startswith("http"):
-        url = "https://" + url.lstrip("/")
+    url = raw if raw.startswith("http") else "https://" + raw.lstrip("/")
     try:
+        assert_safe_url(url)
         row = fetch_petron_ron100_row(url)
         if row:
             return [*rows, row]
+    except ValueError as e:
+        logger.warning("MY_PUMP_PRICES2 rejected by allowlist: %s", e)
     except Exception as e:
         logger.warning("MY_PUMP_PRICES2 Petron scrape failed: %s", e)
     return rows
