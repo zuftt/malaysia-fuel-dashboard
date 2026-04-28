@@ -11,19 +11,18 @@ export function NewsGrid({ articles }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-end">
         <a
-          href="https://webz.io/products/news-api"
+          href="https://newsapi.org"
           target="_blank"
           rel="noopener noreferrer"
           className="mono text-[11px] tracking-[0.12em] uppercase text-[#0a0a0a] underline decoration-[#1a1a1a] decoration-1 underline-offset-4 hover:decoration-[#c24300]"
         >
-          Powered by Webz.io ›
+          Powered by NewsAPI ›
         </a>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 panel">
         {articles.length === 0 ? (
           <div className="col-span-full px-6 py-10 text-center text-[#4b4b48]">
-            <p className="text-[13px] mb-2">Data not yet available for this feed, or the API is still syncing.</p>
-            <p className="text-[12px] opacity-80">Check that the backend can reach the Webz.io News API.</p>
+            <p className="text-[13px]">News is loading. Check back shortly.</p>
           </div>
         ) : (
           articles.map((article, idx) => {
@@ -77,7 +76,7 @@ export function NewsGrid({ articles }: Props) {
       </div>
       <Disclaimer title="About these headlines" tone="neutral">
         <p>
-          Headlines are pulled from the Webz.io News API. RONradar does not edit, endorse, or verify the content of linked
+          Headlines are sourced from Malaysian news publishers via NewsAPI.org. RONradar does not edit, endorse, or verify the content of linked
           articles. Links open in new tabs to the original publishers.
         </p>
       </Disclaimer>

@@ -220,22 +220,9 @@ export function AseanComparison({ rows, exchangeRates, exchangeRatesInfo = null,
       ) : (
         <div className="rounded-sm border border-dashed border-[#c4c4bf] bg-[#f4f4f0] px-5 py-8 text-center mb-8">
           <p className="mono text-[11px] tracking-[0.16em] uppercase text-[#6b6b68] mb-2">ASEAN comparison unavailable</p>
-          <p className="text-[13px] text-[#4b4b48] max-w-lg mx-auto leading-relaxed mb-3">
-            We don’t have regional pump rows to show yet. This is normal on a fresh install or before the first sync
-            finishes.
+          <p className="text-[13px] text-[#4b4b48] max-w-lg mx-auto leading-relaxed">
+            Regional comparison data is loading. Check back shortly.
           </p>
-          <details className="disclosure text-left max-w-lg mx-auto text-[12px] text-[#6b6b68]">
-            <summary className="cursor-pointer mono text-[11px] font-semibold tracking-[0.08em] uppercase hover:text-[#0a0a0a]">
-              For operators
-            </summary>
-            <p className="mt-2 pl-1 border-l border-[#e5e5e0]">
-              Enable startup sync or your scraper schedule, e.g. set{' '}
-              <code className="mono text-[10px] bg-white text-[#0a0a0a] px-1 py-0.5 border border-[#e5e5e0]">
-                ASEAN_SYNC_ON_STARTUP=true
-              </code>{' '}
-              on the API, then reload.
-            </p>
-          </details>
         </div>
       )}
 

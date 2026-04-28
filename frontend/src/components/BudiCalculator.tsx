@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { FuelPrice, PopularCar } from '../lib/types';
 import { POPULAR_CARS_BASE } from '../lib/constants';
-import { formatDateDDMMMYYYY } from '../lib/formatters';
 import { Disclaimer } from './Disclaimer';
 
 type Props = {
@@ -58,10 +57,6 @@ export function BudiCalculator({ prices }: Props) {
   const costTotal = hasOfficial ? costSubsidised + costMarket : 0;
   const costIfAllMarket = hasOfficial ? litresMonth * marketPrice : 0;
   const savings = hasOfficial ? costIfAllMarket - costTotal : 0;
-
-  const priceWeekLabel = prices?.date_announced
-    ? formatDateDDMMMYYYY(prices.date_announced)
-    : 'latest official row';
 
   return (
     <div className="panel p-4 sm:p-5">
@@ -212,10 +207,6 @@ export function BudiCalculator({ prices }: Props) {
               </span>
             </div>
           )}
-
-          <p className="text-[11px] mono tracking-[0.04em] text-[#6b6b68] mb-4 border-l-2 border-[#1a1a1a] pl-3 py-1">
-            Subsidised RON 95 RM {budiPrice.toFixed(2)}/L · market RON 95 RM {marketPrice.toFixed(2)}/L · week {priceWeekLabel} · quota assumption {quota}L/mo.
-          </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 -space-x-px -space-y-px">
             <div className="border border-[#1a1a1a] bg-white p-4 relative">

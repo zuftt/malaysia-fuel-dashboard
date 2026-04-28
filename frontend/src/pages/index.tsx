@@ -268,7 +268,6 @@ export default function Home() {
 
         setError(null);
       } catch (err) {
-        console.error('Error fetching data:', err);
         if (!cancelled && !background) {
           setError('Data temporarily unavailable. Check that the API is running and try again.');
         }
@@ -315,12 +314,6 @@ export default function Home() {
             <p className="eyebrow mb-2">Error</p>
             <h2 className="serif text-2xl font-semibold tracking-tight mb-2">Data temporarily unavailable</h2>
             <p className="text-[13px] text-[#4b4b48] mb-4 leading-relaxed">{error}</p>
-            <details className="disclosure text-[13px] text-[#4b4b48]">
-              <summary className="cursor-pointer mono text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6b6b68] hover:text-[#0a0a0a]">
-                Connection details
-              </summary>
-              <p className="mt-2 mono text-[11px] text-[#6b6b68] break-all">API base URL: {API_URL}</p>
-            </details>
           </div>
         </div>
       </>
@@ -622,7 +615,7 @@ export default function Home() {
             id="news"
             eyebrow="Feed"
             title="Berita Terkini"
-            description="Latest fuel-related headlines from Malaysian news sources via Webz.io News API."
+            description="Latest fuel-related headlines from Malaysian news publishers."
             bare
           >
             <NewsGrid articles={articles} />
