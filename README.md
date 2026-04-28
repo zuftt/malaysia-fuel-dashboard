@@ -1,4 +1,4 @@
-# RONradar
+# RONradar — Malaysia Fuel Price Dashboard
 
 Malaysia fuel price dashboard. Tracks the government's weekly RON95/RON97/Diesel announcements, compares prices across ASEAN, and surfaces the latest subsidy news.
 
@@ -6,19 +6,39 @@ Malaysia fuel price dashboard. Tracks the government's weekly RON95/RON97/Diesel
 
 ---
 
-## What it does
+![Hero](docs/screenshots/01-hero.png)
 
-**Weekly fuel prices** — RON 95 (BUDI95 subsidised + market ceiling), RON 97, and Diesel pulled directly from [data.gov.my](https://data.gov.my/) every Thursday.
+---
 
-**ASEAN comparison** — Bar chart showing how Malaysia's pump prices stack up against Singapore, Thailand, Indonesia, Brunei, and the Philippines, converted to MYR via live exchange rates.
+## Features
 
-**Trend chart** — 12-week rolling price history.
+| | |
+|---|---|
+| **Weekly prices** | RON 95 (BUDI95 subsidised + market ceiling), RON 97, Diesel — sourced from data.gov.my every Wednesday |
+| **Pump prices** | Shell Malaysia live pump grades (Peninsular + Sabah & Sarawak) scraped weekly |
+| **ASEAN comparison** | Bar chart + table: MY · SG · TH · ID · BN · PH, converted to MYR via live FX |
+| **Trend chart** | 12-week rolling price history |
+| **BUDI95 calculator** | Estimate monthly fuel spend by car model, daily distance, and quota |
+| **Berita Terkini** | Latest Malaysia fuel & subsidy headlines via NewsAPI.org |
 
-**Pump prices** — Shell Malaysia live grades (Peninsular + Sabah & Sarawak), scraped weekly.
+---
 
-**BUDI95 calculator** — Enter your car and daily commute; see your estimated monthly fuel spend and how much of your 200L quota you use.
+## Screenshots
 
-**Berita Terkini** — Latest Malaysia fuel & subsidy headlines via NewsAPI.org.
+### Fuel price cards
+![Price cards](docs/screenshots/02-price-cards.png)
+
+### ASEAN comparison
+![ASEAN comparison](docs/screenshots/04-asean.png)
+
+### BUDI95 calculator
+![Calculator](docs/screenshots/06-calculator.png)
+
+### Berita Terkini
+![News](docs/screenshots/07-news.png)
+
+### Mobile
+![Mobile](docs/screenshots/mobile-02-cards.png)
 
 ---
 

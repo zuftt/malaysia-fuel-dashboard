@@ -5,22 +5,15 @@ __pycache__/
 .venv/
 venv/
 env/
+.pytest_cache/
 
-# Backend FX cache (Fixer daily snapshot)
+# Backend runtime cache
 backend/.cache/
 
 # Databases
 *.db
 *.sqlite
 *.sqlite3
-
-# Terraform
-.terraform/
-.terraform.lock.hcl
-*.tfstate
-*.tfstate.*
-*.tfvars
-!*.tfvars.example
 
 # Node
 node_modules/
@@ -34,16 +27,15 @@ build/
 .env.local
 .env.*.local
 
-# Generated assets
-generated-diagrams/
-
-# Cursor (local MCP / IDE)
-.cursor/
-
 # OS / editor
 .DS_Store
 *.log
 .vscode/
 .idea/
 .claude/
+.cursor/
 *.code-workspace
+
+# Local artifacts
+projects/
+*.webm
