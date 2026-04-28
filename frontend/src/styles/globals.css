@@ -282,7 +282,25 @@ details.disclosure[open] > summary .chev {
     opacity: 1 !important;
     transform: none !important;
   }
+}
 
+/* ─── Mobile font scaling ─────────────────────────────────────────────────────
+   iPhone-class screens (< 640 px logical width). The design uses many
+   10–11 px labels that are legible on desktop but too small on a phone.
+   Bump everything up one notch without touching the desktop layout.
+────────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  .eyebrow       { font-size: 11px; letter-spacing: 0.14em; }
+  .cell-label    { font-size: 11px; }
+  .tab-btn       { font-size: 12px; }
+
+  table.terminal th { font-size: 11px; }
+  table.terminal td { font-size: 14px; }
+
+  /* Inline Tailwind mono labels (text-[10px] / text-[11px]) are used for
+     article numbers, source tags, timestamps, footer links, etc. Cap them at
+     a readable 12 px minimum while preserving anything already larger. */
+  .mono { font-size: max(12px, 1em); }
 }
 
 /* Subtle hover on price panels — transition only (no continuous animation). */
