@@ -9,6 +9,8 @@ import requests
 import logging
 import os
 from datetime import datetime, timezone
+from sqlalchemy.orm import Session
+from app.models import GovernmentAnnouncement
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +65,8 @@ def fetch_webz_news(query: str, language: str = "english") -> list[dict] | None:
         return None
 
 
-def sync_webz_news(db = None) -> dict:
-    """Fetch news from Webz.io (database storage not yet implemented)."""
+def sync_webz_news(session: Session) -> dict:
+    """Fetch from Webz.io API and store to database."""
     if not WEBZ_API_KEY:
         logger.warning("WEBZ_IO_API_KEY not set")
         return {"inserted": 0, "updated": 0, "skipped": 0}
@@ -74,14 +76,57 @@ def sync_webz_news(db = None) -> dict:
     for feed_name, query in QUERIES.items():
         language = "malay" if "_my" in feed_name or feed_name == "subsidies" else "english"
 
-        logger.info(f"Fetching {feed_name} ({language}): {query}")
+        logger.info(f"Fetching Webz.io {feed_name} ({language}): {query}")
         articles = fetch_webz_news(query, language)
 
-        if articles:
-            stats["inserted"] += len(articles)
-            logger.info(f"  → {len(articles)} articles found")
+        if not articles:
+            continue
 
-    logger.info(
-        f"Webz.io sync complete: {stats['inserted']} articles fetched"
-    )
+        for article in articles:
+            url = article.get("url", "")
+            if not url:
+                stats["skipped"] += 1
+                continue
+
+            # Check if article already exists
+            existing = (
+                session.query(GovernmentAnnouncement)
+                .filter(GovernmentAnnouncement.source_url == url)
+                .first()
+            )
+
+            try:
+                pub_dt = datetime.fromisoformat(article.get("published_at", "").replace("Z", "+00:00")).replace(tzinfo=None)
+            except (ValueError, AttributeError):
+                pub_dt = datetime.utcnow()
+
+            payload = {
+                "announcement_date": pub_dt,
+                "title": article.get("title", "")[:500],
+                "content": article.get("description", "")[:8000],
+                "source": f"Webz.io · {article.get('source', 'Unknown')}",
+                "source_url": url,
+                "announcement_type": "News Feed",
+                "keywords": ["webz.io", feed_name.split("_")[0]],
+            }
+
+            if existing:
+                existing.announcement_date = payload["announcement_date"]
+                existing.title = payload["title"]
+                existing.content = payload["content"]
+                existing.source = payload["source"]
+                existing.keywords = payload["keywords"]
+                stats["updated"] += 1
+            else:
+                session.add(GovernmentAnnouncement(**payload))
+                stats["inserted"] += 1
+
+    try:
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        logger.exception("Webz.io sync commit failed: %s", e)
+        raise
+
+    logger.info(f"Webz.io sync complete: {stats['inserted']} inserted, {stats['updated']} updated, {stats['skipped']} skipped")
     return stats

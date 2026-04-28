@@ -21,6 +21,13 @@ from app.models import GovernmentAnnouncement
 
 logger = logging.getLogger(__name__)
 
+# Try to import Webz.io fetcher (optional dependency)
+try:
+    from app.webz_news_fetcher import sync_webz_news
+    HAS_WEBZ = True
+except ImportError:
+    HAS_WEBZ = False
+
 # Malaysia / fuel context — article must match at least one gate term
 _GATE_TERMS = re.compile(
     r"\b(malaysia|malaysian|my\b|petronas|putrajaya|kuala|apm|kpdn|mof|sinar|"
@@ -96,10 +103,23 @@ def _rss_urls() -> tuple[tuple[str, str], ...]:
 
 def sync_news_feeds(session: Session, max_total: int = 24) -> dict[str, Any]:
     """
-    Fetch RSS feeds, filter by relevance, upsert into government_announcements.
+    Fetch news from primary source (Webz.io API if available, else RSS feeds).
+    Filter by relevance, upsert into government_announcements.
 
     Uses (source, source_url) uniqueness from the model.
     """
+    # Try Webz.io first (more reliable than Google News RSS which blocks)
+    if HAS_WEBZ and os.getenv("WEBZ_IO_API_KEY", "").strip():
+        try:
+            logger.info("Syncing from Webz.io (primary source)...")
+            result = sync_webz_news(session)
+            logger.info(f"Webz.io sync result: {result}")
+            return result
+        except Exception as e:
+            logger.warning(f"Webz.io sync failed, falling back to RSS: {e}")
+
+    # Fall back to RSS feeds
+    logger.info("Using RSS feeds (fallback)...")
     inserted = 0
     updated = 0
     skipped = 0
