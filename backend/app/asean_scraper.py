@@ -32,22 +32,22 @@ USER_AGENT = (
 )
 
 # Approximate retail prices when live sources fail.
-# Last verified: April 2026. These are ONLY used when scrapers fail.
-# SG: 92-octane, 98-octane, diesel from motorist.sg / globalpetrolprices.com
-# TH: Gasohol 95, Premium Gasohol 95, Diesel B7 from EPPO / thairath.co.th
-# ID: Pertalite (RON 90), Pertamax (RON 92), Solar (subsidised diesel)
-# BN: Shell Regular, Shell Premium, Shell Diesel from paultan.org
-# PH: Unleaded 91, Premium 95, Diesel from fuelprice.ph / philstar.com
+# Last verified: 20 Apr 2026 via globalpetrolprices.com + official sources.
+# SG: globalpetrolprices.com 20-Apr-2026 (SGD 3.08 gasoline, SGD 2.42/L diesel est.)
+# TH: globalpetrolprices.com 20-Apr-2026 (Gasohol 95 E20 ~42.95, diesel 40.72 THB/L)
+# ID: Pertamina official (Pertalite IDR10,000, Pertamax IDR12,300, Solar IDR6,800)
+# BN: paultan.org — Brunei controlled prices unchanged
+# PH: DOE Philippines via globalpetrolprices.com 20-Apr-2026
 SEED_FALLBACK: dict[str, list[dict[str, Any]]] = {
     "SG": [
-        {"fuel_type": "RON95", "local": Decimal("3.41"), "currency": "SGD", "subsidised": False},
+        {"fuel_type": "RON95", "local": Decimal("3.08"), "currency": "SGD", "subsidised": False},
         {"fuel_type": "RON97", "local": Decimal("3.97"), "currency": "SGD", "subsidised": False},
         {"fuel_type": "Diesel", "local": Decimal("4.65"), "currency": "SGD", "subsidised": False},
     ],
     "TH": [
         {"fuel_type": "RON95", "local": Decimal("42.95"), "currency": "THB", "subsidised": False},
-        {"fuel_type": "RON97", "local": Decimal("52.04"), "currency": "THB", "subsidised": False},
-        {"fuel_type": "Diesel", "local": Decimal("50.54"), "currency": "THB", "subsidised": False},
+        {"fuel_type": "RON97", "local": Decimal("52.99"), "currency": "THB", "subsidised": False},
+        {"fuel_type": "Diesel", "local": Decimal("40.72"), "currency": "THB", "subsidised": False},
     ],
     "ID": [
         {"fuel_type": "RON95", "local": Decimal("10000"), "currency": "IDR", "subsidised": True},
@@ -60,7 +60,7 @@ SEED_FALLBACK: dict[str, list[dict[str, Any]]] = {
         {"fuel_type": "Diesel", "local": Decimal("0.31"), "currency": "BND", "subsidised": True},
     ],
     "PH": [
-        {"fuel_type": "RON95", "local": Decimal("95.00"), "currency": "PHP", "subsidised": False},
+        {"fuel_type": "RON95", "local": Decimal("88.10"), "currency": "PHP", "subsidised": False},
         {"fuel_type": "RON97", "local": Decimal("103.00"), "currency": "PHP", "subsidised": False},
         {"fuel_type": "Diesel", "local": Decimal("82.00"), "currency": "PHP", "subsidised": False},
     ],
