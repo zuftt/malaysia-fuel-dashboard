@@ -48,11 +48,11 @@ function pumpGradeLabel(r: MyPumpPriceRow): string {
 }
 
 /** Malay SEO headline; uses MOF effective date when loaded, else today. */
-function malaysiaFuelHeadlineParts(dateAnnounced: string | undefined): {
+function malaysiaFuelHeadlineParts(): {
   fullTitle: string;
   dateLabel: string;
 } {
-  const dateLabel = dateAnnounced ? formatDateLongEn(dateAnnounced) : formatDateLongEn(new Date());
+  const dateLabel = formatDateLongEn(new Date());
   const fullTitle = `Harga Minyak Malaysia Terkini (${dateLabel}) & BUDI95 Calculator`;
   return { fullTitle, dateLabel };
 }
@@ -285,7 +285,7 @@ export default function Home() {
   }, []);
 
   if (loading) {
-    const { fullTitle: loadingTitle } = malaysiaFuelHeadlineParts(undefined);
+    const { fullTitle: loadingTitle } = malaysiaFuelHeadlineParts();
     const y = new Date().getFullYear();
     return (
       <>
@@ -300,7 +300,7 @@ export default function Home() {
   }
 
   if (error) {
-    const { fullTitle: errorTitle } = malaysiaFuelHeadlineParts(undefined);
+    const { fullTitle: errorTitle } = malaysiaFuelHeadlineParts();
     const y = new Date().getFullYear();
     return (
       <>
@@ -411,7 +411,7 @@ export default function Home() {
 
   const effectiveLabel = prices?.date_announced ? formatDateDDMMMYYYY(prices.date_announced) : '—';
   const asOfTodayLabel = formatDateDDMMMYYYY(new Date());
-  const { fullTitle: seoTitleMain, dateLabel: seoDateLabel } = malaysiaFuelHeadlineParts(prices?.date_announced);
+  const { fullTitle: seoTitleMain, dateLabel: seoDateLabel } = malaysiaFuelHeadlineParts();
   const metaYear = new Date().getFullYear();
   const metaMarketRm =
     prices != null &&
