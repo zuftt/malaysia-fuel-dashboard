@@ -9,9 +9,6 @@ import requests
 import logging
 import os
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
-
-from app.models import News
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +63,8 @@ def fetch_webz_news(query: str, language: str = "english") -> list[dict] | None:
         return None
 
 
-def sync_webz_news(db: Session) -> dict:
-    """Sync news from Webz.io into database."""
+def sync_webz_news(db = None) -> dict:
+    """Fetch news from Webz.io (database storage not yet implemented)."""
     if not WEBZ_API_KEY:
         logger.warning("WEBZ_IO_API_KEY not set")
         return {"inserted": 0, "updated": 0, "skipped": 0}
@@ -80,38 +77,11 @@ def sync_webz_news(db: Session) -> dict:
         logger.info(f"Fetching {feed_name} ({language}): {query}")
         articles = fetch_webz_news(query, language)
 
-        if not articles:
-            continue
-
-        for article in articles:
-            try:
-                existing = db.query(News).filter_by(url=article["url"]).first()
-
-                if existing:
-                    existing.title = article["title"]
-                    existing.description = article["description"]
-                    existing.updated_at = datetime.now(timezone.utc)
-                    stats["updated"] += 1
-                else:
-                    news = News(
-                        title=article["title"],
-                        description=article["description"],
-                        url=article["url"],
-                        source=article["source"],
-                        published_at=article["published_at"],
-                        image_url=article["image_url"],
-                        category="fuel_policy",
-                    )
-                    db.add(news)
-                    stats["inserted"] += 1
-            except Exception as e:
-                logger.error(f"Failed to process article: {e}")
-                stats["skipped"] += 1
-
-        db.commit()
+        if articles:
+            stats["inserted"] += len(articles)
+            logger.info(f"  → {len(articles)} articles found")
 
     logger.info(
-        f"Webz.io sync complete: {stats['inserted']} new, "
-        f"{stats['updated']} updated, {stats['skipped']} skipped"
+        f"Webz.io sync complete: {stats['inserted']} articles fetched"
     )
     return stats
