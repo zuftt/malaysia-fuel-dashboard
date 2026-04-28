@@ -80,18 +80,10 @@ async def startup_event():
         except Exception as e:
             logger.warning(f"⚠ Fuel data sync failed (non-fatal): {e}")
 
-        # Webz.io news (fuel & subsidy news — skip in CI via NEWS_SYNC_ON_STARTUP=false)
-        if os.getenv("NEWS_SYNC_ON_STARTUP", "true").lower() in ("1", "true", "yes"):
-            try:
-                ns = sync_webz_news(db)
-                logger.info(
-                    "✓ Webz.io news: %s new, %s updated, %s skipped",
-                    ns.get("inserted", 0),
-                    ns.get("updated", 0),
-                    ns.get("skipped", 0),
-                )
-            except Exception as e:
-                logger.warning(f"⚠ Webz.io news sync failed (non-fatal): {e}")
+        # Webz.io news (disabled on startup - Webz.io API times out from Render network)
+        # To enable: set NEWS_SYNC_ON_STARTUP=true and WEBZ_IO_API_KEY in env vars
+        # For now, news endpoint returns empty (can be called on-demand or scheduled via cron)
+        logger.info("ℹ News sync skipped on startup (Webz.io API timeout from Render network)")
 
         if os.getenv("ASEAN_SYNC_ON_STARTUP", "true").lower() in ("1", "true", "yes"):
             try:
