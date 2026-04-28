@@ -45,7 +45,7 @@ export function NewsGrid({ articles }: Props) {
                 <h3 className="serif font-semibold text-[16px] text-[#0a0a0a] leading-snug mb-2 group-hover:text-[#c24300] transition-colors">
                   {article.title}
                 </h3>
-                <p className="text-[12px] text-[#4b4b48] line-clamp-3 mb-3 flex-1 leading-relaxed">
+                <p className="text-[14px] sm:text-[12px] text-[#4b4b48] line-clamp-3 mb-3 flex-1 leading-relaxed">
                   {(article.content || '').replace(/\s+/g, ' ').slice(0, 200)}
                   {(article.content || '').length > 200 ? '…' : ''}
                 </p>

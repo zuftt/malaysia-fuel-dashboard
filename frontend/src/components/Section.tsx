@@ -35,7 +35,7 @@ export function Section({
             {title}
           </h2>
           {description && (
-            <div className="mt-1.5 text-[13px] text-[#4b4b48] max-w-3xl leading-relaxed">{description}</div>
+            <div className="mt-1.5 text-[14px] sm:text-[13px] text-[#4b4b48] max-w-3xl leading-relaxed">{description}</div>
           )}
         </div>
         {actions && <div className="flex flex-wrap gap-2 shrink-0">{actions}</div>}
