@@ -20,7 +20,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -29,12 +28,6 @@ from app.petron_pump import append_petron_ron100_if_configured
 
 # Load backend/.env when cwd is backend/ (typical for uvicorn and scripts).
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
-
-try:
-    from firecrawl import Firecrawl
-except ImportError as e:  # pragma: no cover
-    print("Install Firecrawl: pip install firecrawl-py", file=sys.stderr)
-    raise e
 
 # ISO country code → env var holding full https URL to scrape (one page per country is enough to start).
 FIRECRAWL_URL_ENV: dict[str, str] = {
@@ -289,6 +282,7 @@ def parse_shell_fuelprice_xlsx(content: bytes) -> list[dict[str, Any]]:
     Shell names the second column *East Malaysia*; we only expose **Sabah** and **Sarawak**
     rows (same value each), never *East* in the API payload labels.
     """
+    import pandas as pd  # lazy — only imported on weekly Shell xlsx fetch
     try:
         df = pd.read_excel(io.BytesIO(content), header=0)
     except Exception:
@@ -572,6 +566,7 @@ def fetch_my_pump_prices_from_env() -> dict[str, Any]:
     except ValueError:
         pump_max_age = PUMP_MAX_AGE_MS_DEFAULT
 
+    from firecrawl import Firecrawl  # lazy — only imported when non-Shell pump URL is configured
     client = Firecrawl(api_key=api_key)
     raw = scrape_one(client, url, max_age_ms=pump_max_age)
     serial = _serialize_firecrawl_result(raw)
