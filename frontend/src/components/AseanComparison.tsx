@@ -50,7 +50,9 @@ export function AseanComparison({ rows, exchangeRates, exchangeRatesInfo = null,
   const fxUser = fxRatesUserCopy(exchangeRates, exchangeRatesInfo, updatedAt);
   const barData = [...compareFiltered]
     .map((r) => {
-      const myrL = r.usd_price * myrPerUsd;
+      // For MYR-denominated rows (Malaysia) use local_price directly — avoids MYR→USD→MYR
+      // roundtrip that introduces FX drift vs the official data.gov.my figure.
+      const myrL = r.currency === 'MYR' ? r.local_price : r.usd_price * myrPerUsd;
       const chartVal = currencyView === 'MYR' && canShowMyr ? myrL : r.usd_price;
       const localLabel = r.local_name || r.fuel_type;
       return {
@@ -253,7 +255,7 @@ export function AseanComparison({ rows, exchangeRates, exchangeRatesInfo = null,
           </thead>
           <tbody>
             {compareFiltered.map((r) => {
-              const myrL = canShowMyr ? r.usd_price * myrPerUsd : 0;
+              const myrL = canShowMyr ? (r.currency === 'MYR' ? r.local_price : r.usd_price * myrPerUsd) : 0;
               return (
                 <tr key={r.country}>
                   <td className="font-medium text-[#0a0a0a]">
