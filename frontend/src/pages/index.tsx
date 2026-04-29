@@ -58,7 +58,7 @@ function malaysiaFuelHeadlineParts(): {
 }
 
 function fuelPageMetaDescription(marketRm: string, budiRm: string, year: number): string {
-  return `Track the latest weekly fuel prices in Malaysia. See the gap between market rates (RM ${marketRm}) and your BUDI95 price (RM ${budiRm}). Use our ${year} Fuel Calculator to see how much the government is subsidizing your monthly commute.`;
+  return `Malaysia's official weekly fuel prices, set by the Ministry of Finance and published on data.gov.my. See the gap between the unsubsidised RON95 ceiling (RM ${marketRm}) and the BUDI95 subsidised pump price (RM ${budiRm}), and use our ${year} BUDI95 calculator to estimate your monthly subsidy.`;
 }
 
 type PriceMeta = {
