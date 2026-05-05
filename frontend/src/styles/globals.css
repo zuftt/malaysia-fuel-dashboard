@@ -304,3 +304,248 @@ details.disclosure[open] > summary .chev {
     border-color: #d8d8d0;
   }
 }
+
+/* ─── Console (ops-style dark dashboard) ──────────────────────────────────
+   Scoped under `.console-root` so it never bleeds into the cream landing page.
+   Targets a single-screen, dense, multi-panel layout. */
+
+.console-root {
+  --c-bg: #0f1115;
+  --c-bg-2: #14171f;
+  --c-panel: #161922;
+  --c-rule: #252836;
+  --c-rule-soft: #1d2029;
+  --c-ink: #e8e8e5;
+  --c-ink-muted: #9b9ba8;
+  --c-ink-soft: #6b6e7c;
+  --c-accent: #c24300;
+  --c-up: #ef4444;
+  --c-down: #10b981;
+  --c-led-ok: #22c55e;
+  --c-led-warn: #f59e0b;
+
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-feature-settings: "ss01", "cv11", "tnum";
+}
+
+.console-root .console-panel {
+  background: var(--c-panel);
+  border: 1px solid var(--c-rule);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.console-root .console-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--c-rule);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-ink-muted);
+}
+
+.console-root .console-panel-head .lhs {
+  color: var(--c-ink);
+}
+
+.console-root .console-panel-body {
+  padding: 10px 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.console-root .console-panel-body--flush {
+  padding: 0;
+}
+
+.console-root .console-led {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--c-led-ok);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.console-root .console-led.is-warn {
+  background: var(--c-led-warn);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+}
+
+.console-root .console-eyebrow {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-ink-soft);
+}
+
+.console-root .console-kpi {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 4px 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--c-rule-soft);
+}
+.console-root .console-kpi:last-child {
+  border-bottom: 0;
+}
+.console-root .console-kpi .label {
+  grid-column: 1 / -1;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-ink-muted);
+}
+.console-root .console-kpi .value {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--c-ink);
+  line-height: 1;
+}
+.console-root .console-kpi .delta {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--c-ink-muted);
+}
+.console-root .console-kpi .delta.is-up {
+  color: var(--c-up);
+}
+.console-root .console-kpi .delta.is-down {
+  color: var(--c-down);
+}
+
+.console-root table.console-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.console-root table.console-table th {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-ink-soft);
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--c-rule);
+  background: var(--c-bg-2);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.console-root table.console-table td {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--c-ink);
+  border-bottom: 1px solid var(--c-rule-soft);
+}
+.console-root table.console-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.console-root table.console-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.console-root .console-meter {
+  position: relative;
+  height: 6px;
+  background: var(--c-rule-soft);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.console-root .console-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--c-down);
+  transition: width 200ms ease;
+}
+.console-root .console-meter.is-over > span {
+  background: var(--c-up);
+}
+
+.console-root .console-link {
+  color: var(--c-ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--c-rule);
+}
+.console-root .console-link:hover {
+  border-bottom-color: var(--c-accent);
+  color: var(--c-accent);
+}
+
+.console-root .console-bar-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.console-root .console-bar-row .bar {
+  height: 8px;
+  background: var(--c-rule-soft);
+  position: relative;
+}
+.console-root .console-bar-row .bar > span {
+  display: block;
+  height: 100%;
+  background: var(--c-ink-muted);
+}
+.console-root .console-bar-row .bar > span.is-self {
+  background: var(--c-accent);
+}
+
+.console-root .console-input {
+  width: 100%;
+  background: var(--c-bg-2);
+  color: var(--c-ink);
+  border: 1px solid var(--c-rule);
+  border-radius: 1px;
+  padding: 6px 8px;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+.console-root .console-input:focus {
+  outline: 1px solid var(--c-accent);
+  outline-offset: 0;
+  border-color: var(--c-accent);
+}
+
+.console-root .console-grid-screen {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, auto);
+}
+@media (max-width: 1023px) {
+  .console-root .console-grid-screen {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (max-width: 639px) {
+  .console-root .console-grid-screen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
