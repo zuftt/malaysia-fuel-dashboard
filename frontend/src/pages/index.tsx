@@ -58,7 +58,7 @@ function malaysiaFuelHeadlineParts(): {
 }
 
 function fuelPageMetaDescription(marketRm: string, budiRm: string, year: number): string {
-  return `Track the latest weekly fuel prices in Malaysia. See the gap between market rates (RM ${marketRm}) and your BUDI95 price (RM ${budiRm}). Use our ${year} Fuel Calculator to see how much the government is subsidizing your monthly commute.`;
+  return `Malaysia's official weekly fuel prices, set by the Ministry of Finance and published on data.gov.my. See the gap between the unsubsidised RON95 ceiling (RM ${marketRm}) and the BUDI95 subsidised pump price (RM ${budiRm}), and use our ${year} BUDI95 calculator to estimate your monthly subsidy.`;
 }
 
 type PriceMeta = {
@@ -90,7 +90,7 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
-    const req = { timeout: 25_000 };
+    const req = { timeout: 50_000 };
 
     // ── Restore from cache immediately so the page isn't blank during API cold start ──
     const cached = {
@@ -160,8 +160,12 @@ export default function Home() {
       try {
         if (!background && !hasCachedData) setLoading(true);
         const [priceRes, trendRes, newsRes, aseanRes, pumpRes] = await Promise.all([
-          axios.get(`${API_URL}/api/v1/prices/latest`, req),
-          axios.get(`${API_URL}/api/v1/prices/history?days=84`, req),
+          axios
+            .get(`${API_URL}/api/v1/prices/latest`, req)
+            .catch(() => ({ data: null as Record<string, unknown> | null })),
+          axios
+            .get(`${API_URL}/api/v1/prices/history?days=84`, req)
+            .catch(() => ({ data: { data: [] as TrendData[] } })),
           axios
             .get(`${API_URL}/api/v1/news/latest?limit=9`, req)
             .catch(() => ({ data: { data: [] as NewsArticle[] } })),
@@ -188,9 +192,14 @@ export default function Home() {
 
         if (cancelled) return;
 
-        const payload = priceRes.data as Record<string, unknown> | undefined;
-        const row = (payload?.data ?? priceRes.data) as FuelPrice;
-        setPrices(row);
+        // Track whether the critical price fetch failed — we use this to decide
+        // whether to show a non-blocking banner, not to replace the whole page.
+        const priceFetchOk = priceRes.data != null;
+
+        const payload = (priceRes.data ?? undefined) as Record<string, unknown> | undefined;
+        const row = (payload?.data ?? payload) as FuelPrice | null | undefined;
+        // Don't blank a previously-loaded (or cached) state if this tick failed.
+        if (row) setPrices(row);
 
         if (payload && typeof payload.source_url === 'string' && typeof payload.timestamp === 'string') {
           setPriceMeta({
@@ -201,15 +210,13 @@ export default function Home() {
                 ? (payload.source_catalogue_url as string)
                 : DATA_GOV_MY_FUEL_CATALOGUE,
           });
-        } else {
-          setPriceMeta(null);
         }
 
         const trendData = trendRes.data?.data ?? trendRes.data ?? [];
-        setTrends(trendData);
+        if (Array.isArray(trendData) && trendData.length > 0) setTrends(trendData);
 
         const newsRows = newsRes.data?.data ?? [];
-        setArticles(Array.isArray(newsRows) ? newsRows : []);
+        if (Array.isArray(newsRows) && newsRows.length > 0) setArticles(newsRows);
 
         const aseanPayload = aseanRes.data ?? {};
         setAseanRows(Array.isArray(aseanPayload.data) ? aseanPayload.data : []);
@@ -266,10 +273,21 @@ export default function Home() {
           }
         }
 
-        setError(null);
-      } catch (err) {
+        if (priceFetchOk) {
+          setError(null);
+        } else if (!cancelled) {
+          // Don't replace the page; just surface a banner. Render free-tier
+          // backends sleep after inactivity and can take ~30s to wake — the
+          // background refresh interval will retry automatically.
+          setError(
+            'Live data could not be fetched. The API may be waking up — values shown may be stale.',
+          );
+        }
+      } catch {
         if (!cancelled && !background) {
-          setError('Data temporarily unavailable. Check that the API is running and try again.');
+          setError(
+            'Live data could not be fetched. The API may be waking up — values shown may be stale.',
+          );
         }
       } finally {
         if (!cancelled && !background) setLoading(false);
@@ -295,27 +313,6 @@ export default function Home() {
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         </Head>
         <PageSkeleton />
-      </>
-    );
-  }
-
-  if (error) {
-    const { fullTitle: errorTitle } = malaysiaFuelHeadlineParts();
-    const y = new Date().getFullYear();
-    return (
-      <>
-        <Head>
-          <title>{`${errorTitle} | RONradar`}</title>
-          <meta name="description" content={fuelPageMetaDescription('3.87', '1.99', y)} />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        </Head>
-        <div className="min-h-screen bg-[#fafaf7] text-[#0a0a0a] flex items-center justify-center px-6">
-          <div className="max-w-xl w-full panel-heavy p-6">
-            <p className="eyebrow mb-2">Error</p>
-            <h2 className="serif text-2xl font-semibold tracking-tight mb-2">Data temporarily unavailable</h2>
-            <p className="text-[13px] text-[#4b4b48] mb-4 leading-relaxed">{error}</p>
-          </div>
-        </div>
       </>
     );
   }
@@ -476,6 +473,18 @@ export default function Home() {
               </div>
             </div>
           </header>
+
+          {error && (
+            <Disclaimer title={prices ? 'Live refresh failed' : 'API waking up'} tone="amber" icon="warning" defaultOpen>
+              <p>{error}</p>
+              {!prices && (
+                <p className="mt-2">
+                  The backend on Render&apos;s free tier sleeps after inactivity and can take ~30 seconds to wake on the
+                  first request. This page will retry automatically every 60 seconds.
+                </p>
+              )}
+            </Disclaimer>
+          )}
 
           <Section
             id="prices"

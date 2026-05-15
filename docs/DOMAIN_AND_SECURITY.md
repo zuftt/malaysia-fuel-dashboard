@@ -174,14 +174,14 @@ Redirect all requests to HTTPS: ON
 Add to **frontend/src/pages/_document.tsx**:
 ```typescript
 <Head>
-  <title>Malaysia Fuel Price Dashboard | Real-time Petrol & Diesel Prices</title>
-  <meta name="description" content="Track real-time fuel prices in Malaysia (RON95, RON97, Diesel). Compare prices across ASEAN countries. Get latest news on fuel subsidies." />
-  <meta name="keywords" content="fuel price Malaysia, petrol price, diesel price, RON95, RON97, ASEAN fuel" />
+  <title>Malaysia Fuel Price Dashboard | Official Weekly RON95, RON97 & Diesel</title>
+  <meta name="description" content="Official weekly Malaysia fuel prices (RON95, RON97, Diesel) set by the Ministry of Finance, with the BUDI95 subsidy explained and ASEAN context. An information hub, not a station price-comparison tool." />
+  <meta name="keywords" content="Malaysia fuel price, BUDI95, RON95 subsidy, RON97, diesel, MOF weekly fuel price, APM, data.gov.my" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   
   {/* Open Graph (social sharing) */}
   <meta property="og:title" content="Malaysia Fuel Price Dashboard" />
-  <meta property="og:description" content="Real-time fuel prices in Malaysia" />
+  <meta property="og:description" content="Official weekly Malaysia fuel prices and BUDI95 subsidy explained" />
   <meta property="og:image" content="https://fuel-dashboard.com/og-image.png" />
   <meta property="og:url" content="https://fuel-dashboard.com" />
   
@@ -231,7 +231,7 @@ Add to **frontend/src/pages/index.tsx**:
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "Malaysia Fuel Price Dashboard",
-  "description": "Real-time fuel price tracking",
+  "description": "Information hub for Malaysia's official weekly fuel prices and the BUDI95 subsidy",
   "url": "https://fuel-dashboard.com",
   "applicationCategory": "UtilityApplication"
 })}
